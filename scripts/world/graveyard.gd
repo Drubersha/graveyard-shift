@@ -11,6 +11,9 @@ func _ready() -> void:
 	_trees()
 	_path_and_lamps()
 	_bench()
+	_scatter_decor()
+	_crows()
+	_warmup_props()
 
 func _ground() -> void:
 	# общая земля под кладбище и дом
@@ -45,8 +48,9 @@ func _fence() -> void:
 	for sx in [-1.9, 1.9]:
 		MeshLib.solid_box(self, Vector3(0.4, 2.2, 0.4), Vector3(sx, 1.1, 2), MeshLib.STONE)
 		MeshLib.sphere(self, 0.14, Vector3(sx, 2.35, 2), MeshLib.BONE_DARK)
-	# арка
-	MeshLib.box(self, Vector3(4.4, 0.35, 0.3), Vector3(0, 2.5, 2), MeshLib.STONE_DARK)
+	# арка с вывеской
+	var arch := MeshLib.box(self, Vector3(4.4, 0.35, 0.3), Vector3(0, 2.5, 2), MeshLib.STONE_DARK)
+	MeshLib.label(arch, "КЛАДБИЩЕ «ТИХАЯ ГАВАНЬ»", Vector3(0, 0.55, 0), 36, MeshLib.BONE)
 
 func _graves() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -57,22 +61,47 @@ func _graves() -> void:
 		if absf(x) < 2.0 or Vector3(x, 0, z).distance_to(spawn_point) < 2.0:
 			continue
 		var tilt := Vector3(rng.randf_range(-8, 8), rng.randf_range(0, 360), rng.randf_range(-10, 10))
-		if i % 3 == 2:
+		var kind := i % 5
+		var has_mound := true
+		if kind == 0:
+			# классическая плита
+			MeshLib.solid_box(self, Vector3(0.7, 0.9, 0.18), Vector3(x, 0.45, z), MeshLib.STONE if i % 2 == 0 else MeshLib.STONE_DARK, tilt)
+		elif kind == 1:
+			# обелиск: постамент + узкий высокий столб + каменное остриё
+			var ob := Node3D.new()
+			ob.position = Vector3(x, 0, z)
+			ob.rotation_degrees = tilt
+			add_child(ob)
+			MeshLib.box(ob, Vector3(0.52, 0.18, 0.52), Vector3(0, 0.09, 0), MeshLib.STONE_DARK)
+			MeshLib.solid_box(ob, Vector3(0.3, 1.5, 0.3), Vector3(0, 0.85, 0), MeshLib.STONE)
+			MeshLib.cone(ob, 0.23, 0.45, Vector3(0, 1.8, 0), MeshLib.STONE_DARK)
+		elif kind == 2:
 			# крест
 			MeshLib.solid_box(self, Vector3(0.16, 1.1, 0.16), Vector3(x, 0.55, z), MeshLib.STONE, tilt)
 			MeshLib.box(self, Vector3(0.6, 0.14, 0.14), Vector3(x, 0.8, z), MeshLib.STONE, tilt)
+		elif kind == 3:
+			# сломанная колонна: покосившийся обломок и упавший кусок рядом
+			MeshLib.cylinder(self, 0.17, 0.75, Vector3(x, 0.35, z), MeshLib.STONE, Vector3(tilt.x, tilt.y, 14 + tilt.z))
+			MeshLib.cylinder(self, 0.15, 0.6, Vector3(x + 0.55, 0.15, z + 0.3), MeshLib.STONE_DARK, Vector3(90, tilt.y, 0))
 		else:
-			MeshLib.solid_box(self, Vector3(0.7, 0.9, 0.18), Vector3(x, 0.45, z), MeshLib.STONE if i % 2 == 0 else MeshLib.STONE_DARK, tilt)
-		# холмик
-		MeshLib.box(self, Vector3(0.8, 0.12, 1.5), Vector3(x, 0.03, z - 0.8), MeshLib.DIRT, Vector3(0, tilt.y, 0))
+			# плита, вросшая в землю
+			MeshLib.box(self, Vector3(0.85, 0.06, 1.5), Vector3(x, 0.035, z - 0.5), MeshLib.STONE_DARK, Vector3(0, tilt.y, 0))
+			MeshLib.box(self, Vector3(0.6, 0.05, 1.15), Vector3(x, 0.075, z - 0.5), MeshLib.STONE, Vector3(0, tilt.y, 0))
+			has_mound = false
+		if has_mound:
+			# холмик: два перекрывающихся плоских бокса — ниже, меньше, темнее
+			var mound_c := MeshLib.DIRT.darkened(0.3)
+			MeshLib.box(self, Vector3(0.55, 0.08, 1.05), Vector3(x, 0.04, z - 0.7), mound_c, Vector3(0, tilt.y, 0))
+			MeshLib.box(self, Vector3(0.38, 0.07, 0.8), Vector3(x, 0.09, z - 0.7), mound_c.lightened(0.05), Vector3(0, tilt.y + 12, 0))
 	# открытая могила игрока
 	MeshLib.box(self, Vector3(1.0, 0.14, 2.0), Vector3(spawn_point.x, 0.02, spawn_point.z), Color(0.08, 0.06, 0.05))
-	MeshLib.box(self, Vector3(1.3, 0.3, 0.4), Vector3(spawn_point.x, 0.1, spawn_point.z + 1.3), MeshLib.DIRT)
+	MeshLib.box(self, Vector3(1.3, 0.3, 0.4), Vector3(spawn_point.x, 0.1, spawn_point.z + 1.3), MeshLib.DIRT.darkened(0.25))
 	var stone := MeshLib.solid_box(self, Vector3(0.8, 1.0, 0.2), Vector3(spawn_point.x, 0.5, spawn_point.z - 1.2), MeshLib.STONE, Vector3(-6, 0, 3))
 	MeshLib.label(stone, "ЗДЕСЬ\nБЫЛ Я", Vector3(0, 0.1, -0.15), 40, Color(0.2, 0.2, 0.25))
 
 func _trees() -> void:
-	for data in [Vector3(-11, 0, 16), Vector3(11.5, 0, 15), Vector3(-12, 0, 5), Vector3(9, 0, 4)]:
+	for data in [Vector3(-11, 0, 16), Vector3(11.5, 0, 15), Vector3(-12, 0, 5), Vector3(9, 0, 4),
+			Vector3(-13, 0, 12.5), Vector3(13, 0, 6.5)]:
 		var tree := Node3D.new()
 		tree.position = data
 		add_child(tree)
@@ -126,3 +155,59 @@ func _bench() -> void:
 	snap.position = Vector3(0, 0.35, -0.05)
 	snap.prompt = "Присесть подумать"
 	bench.add_child(snap)
+
+func _scatter_decor() -> void:
+	# косточки, камешки и пучки сухой травы — чисто визуальные, без коллизий.
+	# Дорожку (|x| < 1.4) и зону спавна обходим с запасом.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 66
+	for i in 24:
+		var x := rng.randf_range(-13.0, 13.0)
+		var z := rng.randf_range(3.0, 17.0)
+		if absf(x) < 1.8 or Vector3(x, 0, z).distance_to(spawn_point) < 1.8:
+			continue
+		var pick := i % 3
+		if pick == 0:
+			# косточка, иногда пара крест-накрест
+			MeshLib.capsule(self, 0.035, 0.28, Vector3(x, 0.035, z), MeshLib.BONE_DARK,
+				Vector3(90, rng.randf_range(0, 360), 0))
+			if i % 6 == 0:
+				MeshLib.capsule(self, 0.035, 0.24, Vector3(x + 0.12, 0.035, z + 0.06), MeshLib.BONE_DARK,
+					Vector3(90, rng.randf_range(0, 360), 0))
+		elif pick == 1:
+			# камешек — приплюснутая полузарытая сфера
+			var r := rng.randf_range(0.06, 0.12)
+			MeshLib.sphere(self, r, Vector3(x, r * 0.35, z), MeshLib.STONE_DARK.darkened(rng.randf_range(0.0, 0.2)), 0.6)
+		else:
+			# пучок сухой травы: три тонких конуса враскос
+			var g := MeshLib.GRASS.darkened(0.25)
+			for t in 3:
+				var h := rng.randf_range(0.25, 0.45)
+				MeshLib.cone(self, 0.025, h,
+					Vector3(x + rng.randf_range(-0.08, 0.08), h * 0.45, z + rng.randf_range(-0.08, 0.08)),
+					g.lightened(rng.randf_range(0.0, 0.1)),
+					Vector3(rng.randf_range(-16, 16), 0, rng.randf_range(-16, 16)))
+
+func _crows() -> void:
+	# вороны-силуэты: две на заборе, одна на дереве
+	var c := MeshLib.ROOF.darkened(0.6)
+	for data in [
+		[Vector3(-6.0, 1.31, 18.0), 180.0],
+		[Vector3(14.0, 1.31, 7.0), -90.0],
+		[Vector3(11.4, 3.5, 15.2), 210.0],
+	]:
+		var crow := Node3D.new()
+		crow.position = data[0]
+		var yaw: float = data[1]
+		crow.rotation_degrees = Vector3(0, yaw, 0)
+		add_child(crow)
+		MeshLib.sphere(crow, 0.11, Vector3(0, 0.1, 0), c, 0.85)
+		MeshLib.sphere(crow, 0.065, Vector3(0, 0.2, 0.08), c)
+		MeshLib.cone(crow, 0.022, 0.09, Vector3(0, 0.2, 0.16), MeshLib.BONE_DARK.darkened(0.35), Vector3(90, 0, 0))
+		MeshLib.box(crow, Vector3(0.05, 0.03, 0.14), Vector3(0, 0.09, -0.13), c, Vector3(-20, 0, 0))
+
+func _warmup_props() -> void:
+	# ломаемый хлам возле скамейки для разминки — RigidBody, в стороне от дорожки
+	BreakableProp.make(self, "pot", Vector3(-3.1, 0.2, 5.0))
+	BreakableProp.make(self, "crate", Vector3(-5.2, 0.3, 6.9), Vector3(0, 25, 0))
+	BreakableProp.make(self, "skullpot", Vector3(-2.4, 0.16, 7.4))
