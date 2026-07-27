@@ -7,7 +7,8 @@ signal objective_changed(text: String)
 signal hint_shown(text: String)
 signal mission_stage_changed(stage: int)
 
-var possessed: Node3D = null
+var possessed: Node3D = null        # чем управляем
+var camera_target: Node3D = null    # чьими глазами смотрим (череп, пока он при теле — тело)
 var player_skeleton: Node3D = null
 var camera_rig: Node3D = null
 var main_node: Node3D = null  # корень с менеджером локаций
@@ -36,6 +37,36 @@ func possess(node: Node3D) -> void:
 
 func is_possessed(node: Node) -> bool:
 	return possessed == node
+
+## Камера всегда «в глазницах»: при теле — на теле, отдельно — на черепе.
+func set_camera_target(node: Node3D) -> void:
+	camera_target = node
+
+## Всё, чем сейчас можно управлять: тело, оторванная рука, отделённый череп.
+func control_targets() -> Array[Node3D]:
+	var list: Array[Node3D] = []
+	var skel := player_skeleton as SkeletonPlayer
+	if skel == null:
+		return list
+	if skel.state != SkeletonPlayer.State.SHATTERED:
+		list.append(skel)
+	if is_instance_valid(skel.arm_entity):
+		list.append(skel.arm_entity)
+	if is_instance_valid(skel.skull_entity):
+		list.append(skel.skull_entity)
+	return list
+
+## Tab — по кругу: тело → рука → череп → тело.
+func cycle_control() -> void:
+	var list := control_targets()
+	if list.size() < 2:
+		return
+	var idx := list.find(possessed)
+	var next: Node3D = list[(idx + 1) % list.size()]
+	possess(next)
+	var names := {}
+	names[player_skeleton] = "тело (удалённо)" if camera_target != player_skeleton else "тело"
+	hint("Управление: " + str(names.get(next, "рука" if next is DetachedArm else "череп")))
 
 func add_mess(value: int) -> void:
 	mess_points += value
@@ -76,6 +107,8 @@ func _setup_input() -> void:
 	_bind_key("throw_skull", KEY_G)
 	_bind_key("collapse", KEY_R)
 	_bind_key("switch_body", KEY_TAB)
+	_bind_key("toggle_view", KEY_V)
+	_bind_key("respawn", KEY_H)
 	_bind_mouse("grab", MOUSE_BUTTON_LEFT)
 
 func _bind_key(action: String, key: Key) -> void:

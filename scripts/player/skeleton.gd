@@ -24,6 +24,8 @@ var state := State.ACTIVE
 
 var arm_attached := true
 var arm_entity: DetachedArm = null
+var skull_attached := true
+var skull_entity: SkullEntity = null
 var held: RigidBody3D = null
 
 var _charge := 0.0                 # общий заряд броска (предмет или череп)
@@ -31,7 +33,6 @@ var _charging_action := ""         # "grab" или "throw_skull"
 var _cooldown_left := 0.0
 var _gathering := false
 var _bones: Array[BoneDebris] = []
-var _skull_entity: SkullEntity = null
 var _last_ground_pos := Vector3.ZERO
 var _sit_point: Node3D = null
 
@@ -45,6 +46,7 @@ var _walk_phase := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
+	add_to_group("view_aware")
 	Game.player_skeleton = self
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
@@ -53,9 +55,10 @@ func _ready() -> void:
 	col.shape = cap
 	col.position = Vector3(0, 0.85, 0)
 	add_child(col)
+	Game.set_camera_target(self)
 	var anchor := Node3D.new()
 	anchor.name = "CamAnchor"
-	anchor.position = Vector3(0, 1.5, 0)
+	anchor.position = Vector3(0, 1.62, 0)   # уровень глазниц черепа
 	add_child(anchor)
 	_build_visual()
 	Game.possess(self)
@@ -192,7 +195,7 @@ func _handle_actions(delta: float) -> void:
 			if _charging_action == "grab":
 				_throw_held(power)
 			else:
-				_do_throw_skull(power)
+				_detach_skull(power)
 			_charging_action = ""
 			_charge = 0.0
 		return
@@ -202,7 +205,10 @@ func _handle_actions(delta: float) -> void:
 		else:
 			_try_grab()
 	elif Input.is_action_just_pressed("throw_skull"):
-		_charging_action = "throw_skull"
+		if skull_attached:
+			_charging_action = "throw_skull"   # удержание заряжает бросок черепа
+		else:
+			try_attach_skull()
 	elif Input.is_action_just_pressed("interact"):
 		_try_interact()
 	elif Input.is_action_just_pressed("detach_arm"):
@@ -211,8 +217,7 @@ func _handle_actions(delta: float) -> void:
 		shatter(Vector3.UP)
 	elif Input.is_action_just_pressed("switch_body") \
 			and Game.last_switch_frame != int(Engine.get_physics_frames()):
-		if is_instance_valid(arm_entity):
-			Game.possess(arm_entity)
+		Game.cycle_control()
 
 # ---------------------------------------------------------------- хват
 
@@ -308,7 +313,7 @@ func _toggle_arm() -> void:
 		arm.owner_skeleton = self
 		arm_entity = arm
 		Game.possess(arm)
-		Game.hint("Рука на радиоуправлении: WASD ползти, Space прыжок, E нажать, Tab — назад в тело")
+		Game.hint("Рука на радиоуправлении: камера остаётся у черепа, рука ползёт сама. WASD — ползти, Space — подскок, E — нажать, Tab — сменить управление.")
 	elif is_instance_valid(arm_entity):
 		if arm_entity.global_position.distance_to(global_position) < 2.2:
 			reattach_arm()
@@ -324,27 +329,47 @@ func reattach_arm() -> void:
 
 # ---------------------------------------------------------------- череп и рассыпание
 
-func _do_throw_skull(power: float) -> void:
-	if state != State.ACTIVE:
+## Снять череп и запустить его. Тело остаётся стоять и слушается удалённо,
+## а камера уезжает с черепом — он же глаза.
+func _detach_skull(power: float) -> void:
+	if state != State.ACTIVE or not skull_attached:
 		return
 	var rig := Game.camera_rig as CameraRig
+	_spawn_skull((rig.aim() if rig else Vector3.FORWARD) * power + Vector3.UP * 2.0)
+	skull_thrown.emit()
+	Game.possess(skull_entity)
+	Game.hint("Череп отделён. Tab — переключить управление (череп / тело / рука), G у тела — вернуть на место.")
+
+func _spawn_skull(velocity_: Vector3) -> void:
+	skull_attached = false
+	_skull_vis.visible = false
 	var skull := SkullEntity.new()
 	get_parent().add_child(skull)
 	skull.global_position = _skull_vis.global_position
-	skull.linear_velocity = (rig.aim() if rig else Vector3.FORWARD) * power + Vector3.UP * 2.0
-	_skull_entity = skull
-	skull_thrown.emit()
-	_shatter_body(false)
-	Game.hint("Тело соберётся там, где остановится череп")
+	skull.linear_velocity = velocity_
+	skull.owner_skeleton = self
+	skull_entity = skull
+	Game.set_camera_target(skull)
+
+## Вернуть череп на плечи (если он рядом с телом).
+func try_attach_skull() -> void:
+	if skull_attached or not is_instance_valid(skull_entity):
+		return
+	if skull_entity.global_position.distance_to(global_position) > 2.6:
+		Game.hint("Череп далеко. Прикати его к телу (Tab) или собери всё разом — H.")
+		return
+	skull_entity.queue_free()
+	skull_entity = null
+	skull_attached = true
+	_skull_vis.visible = true
+	Game.set_camera_target(self)
+	Game.possess(self)
 
 func shatter(dir: Vector3) -> void:
 	if state == State.SHATTERED:
 		return
-	var skull := SkullEntity.new()
-	get_parent().add_child(skull)
-	skull.global_position = _skull_vis.global_position
-	skull.linear_velocity = dir * 3.0 + Vector3(randf_range(-2, 2), 3.0, randf_range(-2, 2))
-	_skull_entity = skull
+	if skull_attached:
+		_spawn_skull(dir * 3.0 + Vector3(randf_range(-2, 2), 3.0, randf_range(-2, 2)))
 	_shatter_body(true)
 
 ## Общая часть рассыпания. Череп уже создан вызывающим кодом.
@@ -367,21 +392,21 @@ func _shatter_body(_from_damage: bool) -> void:
 		b.global_position = global_position + Vector3(randf_range(-0.3, 0.3), 0.6 + randf_range(0, 0.8), randf_range(-0.3, 0.3))
 		b.linear_velocity = Vector3(randf_range(-3, 3), randf_range(2, 5), randf_range(-3, 3))
 		_bones.append(b)
-	if is_instance_valid(_skull_entity):
-		Game.possess(_skull_entity)
+	if is_instance_valid(skull_entity):
+		Game.possess(skull_entity)
 	shattered.emit()
 
 func _tick_shattered(delta: float) -> void:
 	if _gathering:
 		return
 	# череп улетел за пределы мира — спасаем
-	if is_instance_valid(_skull_entity) and _skull_entity.global_position.y < -10.0:
-		_skull_entity.global_position = _last_ground_pos + Vector3.UP
-		_skull_entity.linear_velocity = Vector3.ZERO
+	if is_instance_valid(skull_entity) and skull_entity.global_position.y < -10.0:
+		skull_entity.global_position = _last_ground_pos + Vector3.UP
+		skull_entity.linear_velocity = Vector3.ZERO
 	_cooldown_left -= delta
-	if _cooldown_left <= 0.0 and is_instance_valid(_skull_entity):
+	if _cooldown_left <= 0.0 and is_instance_valid(skull_entity):
 		# собираемся, когда череп остановился; если он всё катается — через 5 с принудительно
-		if _skull_entity.linear_velocity.length() < 0.8 or _cooldown_left < -5.0:
+		if skull_entity.linear_velocity.length() < 0.8 or _cooldown_left < -5.0:
 			_begin_gather()
 
 func cooldown_ratio() -> float:
@@ -393,7 +418,7 @@ func charge_ratio() -> float:
 
 func _begin_gather() -> void:
 	_gathering = true
-	var target := _skull_entity.global_position
+	var target := skull_entity.global_position
 	var tw := create_tween()
 	for b in _bones:
 		if is_instance_valid(b):
@@ -402,14 +427,17 @@ func _begin_gather() -> void:
 	tw.tween_callback(_finish_reassemble)
 
 func _finish_reassemble() -> void:
-	var pos := _skull_entity.global_position if is_instance_valid(_skull_entity) else _last_ground_pos
+	var pos := skull_entity.global_position if is_instance_valid(skull_entity) else _last_ground_pos
 	for b in _bones:
 		if is_instance_valid(b):
 			b.queue_free()
 	_bones.clear()
-	if is_instance_valid(_skull_entity):
-		_skull_entity.queue_free()
-	_skull_entity = null
+	if is_instance_valid(skull_entity):
+		skull_entity.queue_free()
+	skull_entity = null
+	skull_attached = true
+	_skull_vis.visible = true
+	Game.set_camera_target(self)
 	global_position = pos + Vector3.UP * 0.4
 	velocity = Vector3.ZERO
 	visible = true
@@ -425,9 +453,45 @@ func apply_shock(strength: float, dir: Vector3) -> void:
 	if strength >= SHOCK_LIMIT:
 		shatter(dir.normalized())
 
+## Вид от первого лица: собственный скелет не должен закрывать обзор изнутри.
+func set_view_mode(first_person: bool) -> void:
+	if is_instance_valid(_visual):
+		_visual.visible = not first_person
+
 ## Мгновенная сборка (переход между локациями): кости не должны остаться в выгруженной сцене.
 func force_reassemble() -> void:
 	if state != State.SHATTERED:
 		return
 	_gathering = true
 	_finish_reassemble()
+
+## Кнопка H: собрать себя целиком и телепортироваться на вход локации.
+func respawn_at(pos: Vector3) -> void:
+	_release_held()
+	_charging_action = ""
+	_charge = 0.0
+	for b in _bones:
+		if is_instance_valid(b):
+			b.queue_free()
+	_bones.clear()
+	if is_instance_valid(arm_entity):
+		arm_entity.queue_free()
+	arm_entity = null
+	arm_attached = true
+	_arm_r_pivot.visible = true
+	if is_instance_valid(skull_entity):
+		skull_entity.queue_free()
+	skull_entity = null
+	skull_attached = true
+	_skull_vis.visible = true
+	_gathering = false
+	_cooldown_left = 0.0
+	state = State.ACTIVE
+	visible = true
+	collision_layer = 1
+	collision_mask = 1
+	velocity = Vector3.ZERO
+	global_position = pos
+	Game.set_camera_target(self)
+	Game.possess(self)
+	Game.hint("Собрался. Как новенький. Ну, как подержанный.")

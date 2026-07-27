@@ -12,16 +12,13 @@ var _visual: Node3D
 var _crawl_phase := 0.0
 
 func _ready() -> void:
+	add_to_group("view_aware")
 	mass = 2.0
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(0.3, 0.14, 0.42)
 	col.shape = shape
 	add_child(col)
-	var anchor := Node3D.new()
-	anchor.name = "CamAnchor"
-	anchor.position = Vector3(0, 0.45, 0)
-	add_child(anchor)
 	_build_visual()
 
 func _build_visual() -> void:
@@ -62,8 +59,12 @@ func _physics_process(delta: float) -> void:
 		_try_interact()
 	if (Input.is_action_just_pressed("switch_body") or Input.is_action_just_pressed("detach_arm")) \
 			and Game.last_switch_frame != int(Engine.get_physics_frames()):
-		if is_instance_valid(owner_skeleton):
-			Game.possess(owner_skeleton)
+		Game.cycle_control()
+
+## Вид от первого лица «с ладони» — жутко и очень удобно в вентиляции.
+func set_view_mode(first_person: bool) -> void:
+	if is_instance_valid(_visual):
+		_visual.visible = not first_person
 
 func _on_ground() -> bool:
 	var params := PhysicsRayQueryParameters3D.create(

@@ -38,7 +38,9 @@ var _moving := false
 
 func _ready() -> void:
 	add_to_group("interactable")
-	_model = ModelLib.visual(self, MODEL, Vector3.ZERO, 0.0, MODEL_SCALE)
+	# модель смотрит в +Z, а в Godot «вперёд» — это -Z: разворачиваем визуал,
+	# чтобы поворот самого узла работал по обычной конвенции
+	_model = ModelLib.visual(self, MODEL, Vector3.ZERO, 180.0, MODEL_SCALE)
 	_apply_witch_look(_model)
 	_anim = _find_anim(_model)
 	if _anim:
@@ -74,7 +76,7 @@ func _apply_witch_look(node: Node) -> void:
 		var mi := node as MeshInstance3D
 		var m := StandardMaterial3D.new()
 		m.albedo_texture = load(SKIN)
-		m.albedo_color = Color(0.82, 0.72, 0.88)  # холодный фиолетовый полутон
+		m.albedo_color = Color(0.5, 0.38, 0.58)   # готический полумрак вместо джинсы
 		m.roughness = 0.95
 		mi.material_override = m
 	for child in node.get_children():

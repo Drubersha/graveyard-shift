@@ -78,6 +78,10 @@ func _physics_process(_delta: float) -> void:
 				_fail("после F управление не у руки (possessed=%s)" % [Game.possessed])
 			_step = 5
 		5:
+			if Game.camera_target == _skel:
+				_ok("камера осталась у черепа: рука управляется удалённо")
+			else:
+				_fail("камера уехала за рукой (camera_target=%s)" % [Game.camera_target])
 			_mark = (Game.possessed as Node3D).global_position
 			Input.action_press("move_forward")
 			_wait = 60
@@ -96,9 +100,9 @@ func _physics_process(_delta: float) -> void:
 		7:
 			Input.action_release("switch_body")
 			if Game.possessed == _skel:
-				_ok("Tab вернул управление скелету")
+				_ok("Tab вернул управление телу")
 			else:
-				_fail("Tab не вернул управление скелету")
+				_fail("Tab не вернул управление телу (possessed=%s)" % [Game.possessed])
 			if is_instance_valid(_skel.arm_entity) and _skel.arm_entity.global_position.distance_to(_skel.global_position) < 2.2:
 				_skel.reattach_arm()
 			_step = 8
@@ -111,10 +115,32 @@ func _physics_process(_delta: float) -> void:
 			_wait = 5
 			_step = 10
 		10:
-			if _skel.state == SkeletonPlayer.State.SHATTERED and Game.possessed is SkullEntity:
-				_ok("череп брошен, тело рассыпалось, камера на черепе")
+			if not _skel.skull_attached and Game.possessed is SkullEntity and Game.camera_target is SkullEntity:
+				_ok("череп снят: камера и управление на нём, тело осталось на ногах")
 			else:
-				_fail("бросок черепа: state=%s possessed=%s" % [_skel.state, Game.possessed])
+				_fail("снятие черепа: attached=%s possessed=%s cam=%s" % [_skel.skull_attached, Game.possessed, Game.camera_target])
+			if _skel.state == SkeletonPlayer.State.ACTIVE:
+				_ok("безголовое тело живо и управляемо")
+			else:
+				_fail("тело развалилось при снятии черепа")
+			# возвращаем череп на плечи через respawn-кнопку
+			Game.main_node.skeleton.respawn_at(_skel.global_position)
+			_wait = 5
+			_step = 105
+		105:
+			if _skel.skull_attached and Game.camera_target == _skel and Game.possessed == _skel:
+				_ok("H собрал скелета целиком и вернул камеру в череп")
+			else:
+				_fail("respawn не собрал скелета")
+			Input.action_press("collapse")
+			_wait = 2
+			_step = 106
+		106:
+			Input.action_release("collapse")
+			if _skel.state == SkeletonPlayer.State.SHATTERED and Game.possessed is SkullEntity:
+				_ok("R — рассыпание, камера улетела с черепом")
+			else:
+				_fail("R не рассыпал скелета")
 			_mark = Vector3(_frames, 0, 0)
 			_step = 11
 		11:
@@ -137,24 +163,7 @@ func _physics_process(_delta: float) -> void:
 				_fail("ваза не разбилась при падении")
 			_step = 14
 		14:
-			Input.action_press("collapse")
-			_wait = 2
-			_step = 15
-		15:
-			Input.action_release("collapse")
-			if _skel.state == SkeletonPlayer.State.SHATTERED:
-				_ok("R — добровольное рассыпание работает")
-			else:
-				_fail("R не рассыпал скелета")
-			_mark = Vector3(_frames, 0, 0)
-			_step = 16
-		16:
-			if _skel.state == SkeletonPlayer.State.ACTIVE:
-				_ok("повторная сборка работает")
-				_step = 17
-			elif _frames - _mark.x > 900:
-				_fail("повторная сборка не произошла")
-				_step = 17
+			_step = 17
 		17:
 			# веник чистит пыль
 			var pos := _skel.global_position + Vector3(2, 0.1, 0)
@@ -236,6 +245,27 @@ func _physics_process(_delta: float) -> void:
 				_ok("завтрак подан, зона у дивана сработала")
 			else:
 				_fail("зона подачи не приняла завтрак")
+			# проверяем спуск в подвал и перенос предмета в руках между локациями
+			_sink_plate = BreakableProp.make(get_tree().current_scene, "bottle", Vector3.ZERO)
+			_sink_plate.global_position = _skel.global_position + Vector3(0.6, 0.6, 0)
+			_wait = 20
+			_step = 26
+		26:
+			_skel.held = _sink_plate
+			_sink_plate.freeze = true
+			Game.main_node.switch_location("cellar", "from_kitchen")
+			_wait = 100
+			_step = 27
+		27:
+			var dungeon := get_tree().get_first_node_in_group("dungeon")
+			if dungeon:
+				_ok("локация переключилась: особняк → подвал")
+			else:
+				_fail("подвал не загрузился")
+			if is_instance_valid(_skel.held) and _skel.held == _sink_plate:
+				_ok("предмет в руках переехал вместе с игроком")
+			else:
+				_fail("предмет в руках потерялся при переходе")
 			_finish()
 
 func _finish() -> void:

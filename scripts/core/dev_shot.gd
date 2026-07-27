@@ -9,6 +9,7 @@ var _quit_frame := -1
 var _frame := 0
 var _teleport := Vector3.INF  # --tp=x,y,z — телепорт игрока перед скриншотом
 var _loc := ""                # --loc=indoor — переключить локацию перед скриншотом
+var _first_person := false    # --fpv — снимать от первого лица
 
 func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
@@ -23,6 +24,8 @@ func _ready() -> void:
 			var parts := arg.trim_prefix("--tp=").split(",")
 			if parts.size() == 3:
 				_teleport = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
+		elif arg == "--fpv":
+			_first_person = true
 		elif arg == "--selftest":
 			var st := load("res://scripts/core/selftest.gd")
 			if st:
@@ -43,6 +46,8 @@ func _process(_delta: float) -> void:
 		if skel.state == SkeletonPlayer.State.SHATTERED:
 			skel.force_reassemble()
 		skel.global_position = _teleport
+		if _first_person and Game.camera_rig:
+			(Game.camera_rig as CameraRig).toggle_view()
 	if _frame >= _quit_frame:
 		if _shot_path != "":
 			var img := get_viewport().get_texture().get_image()

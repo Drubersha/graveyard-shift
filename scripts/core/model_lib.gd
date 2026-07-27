@@ -137,6 +137,46 @@ static func _override_all(node: Node, mat: Material) -> void:
 	for child in node.get_children():
 		_override_all(child, mat)
 
+## Готическое окно-витраж: текстура с альфой, светится изнутри.
+static func gothic_window(parent: Node, width: float, height: float, pos: Vector3,
+		rot_y := 0.0, tint := Color(1.0, 0.95, 0.9)) -> MeshInstance3D:
+	var quad := QuadMesh.new()
+	quad.size = Vector2(width, height)
+	var mi := MeshInstance3D.new()
+	mi.mesh = quad
+	mi.position = pos
+	mi.rotation_degrees = Vector3(0, rot_y, 0)
+	var m := StandardMaterial3D.new()
+	var t := load("res://assets/textures/gothic/Gothic_Window_001.png")
+	m.albedo_texture = t
+	m.albedo_color = tint
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.emission_enabled = true
+	m.emission_texture = t
+	m.emission = Color(1.0, 0.85, 0.6)
+	m.emission_energy_multiplier = 0.9
+	mi.material_override = m
+	parent.add_child(mi)
+	return mi
+
+## Готический орнамент-розетка (Gothic_Flower) — накладка на стену.
+static func gothic_ornament(parent: Node, size: float, pos: Vector3, rot_y := 0.0, index := 1) -> MeshInstance3D:
+	var quad := QuadMesh.new()
+	quad.size = Vector2(size, size)
+	var mi := MeshInstance3D.new()
+	mi.mesh = quad
+	mi.position = pos
+	mi.rotation_degrees = Vector3(0, rot_y, 0)
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load("res://assets/textures/gothic/Gothic_Flower_%03d.png" % index)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.roughness = 0.85
+	mi.material_override = m
+	parent.add_child(mi)
+	return mi
+
 ## Трипланарный текстурный материал: не зависит от UV процедурных боксов.
 static func tex_mat(tex_name: String, tint := Color.WHITE, uv_scale := 0.5, rough := 0.9) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
