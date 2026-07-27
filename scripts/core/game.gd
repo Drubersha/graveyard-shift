@@ -10,6 +10,7 @@ signal mission_stage_changed(stage: int)
 var possessed: Node3D = null
 var player_skeleton: Node3D = null
 var camera_rig: Node3D = null
+var main_node: Node3D = null  # корень с менеджером локаций
 var mess_points: int = 0
 var mess_target: int = 0  # >0 — HUD показывает срач-о-метр
 # кадр последней смены possession: гасит двойное срабатывание Tab,

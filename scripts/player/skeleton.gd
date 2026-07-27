@@ -424,3 +424,10 @@ func _finish_reassemble() -> void:
 func apply_shock(strength: float, dir: Vector3) -> void:
 	if strength >= SHOCK_LIMIT:
 		shatter(dir.normalized())
+
+## Мгновенная сборка (переход между локациями): кости не должны остаться в выгруженной сцене.
+func force_reassemble() -> void:
+	if state != State.SHATTERED:
+		return
+	_gathering = true
+	_finish_reassemble()

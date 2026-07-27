@@ -12,6 +12,7 @@ var prompt := "Открыть дверь"
 var _panel: StaticBody3D
 var _width := 0.9
 var _height := 2.0
+var model_path := ""   # модель двери из хауспака вместо процедурной панели
 
 static func make(parent: Node, pos: Vector3, rot_y: float, width := 0.9, height := 2.0, color := MeshLib.WOOD_DARK) -> DoorGate:
 	var d := DoorGate.new()
@@ -23,13 +24,39 @@ static func make(parent: Node, pos: Vector3, rot_y: float, width := 0.9, height 
 	d._build(color)
 	return d
 
+## Дверь с моделью Door_* из хауспака (натуральный размер 1.74/3.48 x 4.19).
+static func make_model(parent: Node, pos: Vector3, rot_y: float, width: float, height: float, path: String) -> DoorGate:
+	var d := DoorGate.new()
+	d._width = width
+	d._height = height
+	d.model_path = path
+	d.position = pos
+	d.rotation_degrees = Vector3(0, rot_y, 0)
+	parent.add_child(d)
+	d._build(MeshLib.WOOD_DARK)
+	return d
+
 func _build(color: Color) -> void:
 	add_to_group("interactable")
-	# петля — в корне узла; полотно смещено на полширины
-	_panel = MeshLib.solid_box(self, Vector3(_width, _height, 0.08),
-		Vector3(_width * 0.5, _height * 0.5, 0), color)
-	# ручка
-	MeshLib.sphere(_panel.get_child(1), 0.05, Vector3(_width * 0.38, 0, -0.07), Color(0.8, 0.7, 0.3))
+	if model_path == "":
+		# петля — в корне узла; полотно смещено на полширины
+		_panel = MeshLib.solid_box(self, Vector3(_width, _height, 0.08),
+			Vector3(_width * 0.5, _height * 0.5, 0), color)
+		# ручка
+		MeshLib.sphere(_panel.get_child(1), 0.05, Vector3(_width * 0.38, 0, -0.07), Color(0.8, 0.7, 0.3))
+	else:
+		# невидимая панель-коллизия + модель, растянутая под проём
+		_panel = StaticBody3D.new()
+		add_child(_panel)
+		var col := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(_width, _height, 0.12)
+		col.shape = shape
+		col.position = Vector3(_width * 0.5, _height * 0.5, 0)
+		_panel.add_child(col)
+		var nat_w := 3.48 if model_path.contains("Double") else 1.74
+		var vis := ModelLib.visual(_panel, model_path, Vector3(_width, 0, 0), 180.0)
+		vis.scale = Vector3(_width / nat_w, _height / 4.19, 0.7)
 
 func get_prompt() -> String:
 	return locked_hint if locked else prompt

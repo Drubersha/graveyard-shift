@@ -1,12 +1,23 @@
 class_name GraveyardScene extends Node3D
-## Кладбище — стартовая локация. Открытая могила (спавн), надгробия, забор с
-## воротами в сторону дома, фонари вдоль дорожки, скамейка, мёртвые деревья.
+## Кладбище — стартовая локация и задний двор особняка. Открытая могила (спавн),
+## модельные надгробия (Spooky Graveyard), запертые ворота с рычагом снаружи
+## (рука пролезает в щель под створками), фонари, скамейка, мёртвые деревья.
+
+signal gate_opened
 
 var spawn_point := Vector3(3, 0.5, 8)
+var gate_lever: Lever
+var walk_marker_out := Vector3(3, 0.3, 13.5)   # «пройдись туда»
+var walk_marker_back := Vector3(3, 0.3, 8.6)   # «и обратно»
+var gate_center := Vector3(0, 0.3, 2)
+var _gate_l: StaticBody3D
+var _gate_r: StaticBody3D
+var _gate_open := false
 
 func _ready() -> void:
 	_ground()
 	_fence()
+	_gate()
 	_graves()
 	_trees()
 	_path_and_lamps()
@@ -52,52 +63,82 @@ func _fence() -> void:
 	var arch := MeshLib.box(self, Vector3(4.4, 0.35, 0.3), Vector3(0, 2.5, 2), MeshLib.STONE_DARK)
 	MeshLib.label(arch, "КЛАДБИЩЕ «ТИХАЯ ГАВАНЬ»", Vector3(0, 0.55, 0), 36, MeshLib.BONE)
 
+## Ворота кладбища: заперты, рычаг снаружи. Низ створок сплошной (скелет не
+## дотянется), под ними щель 0.26 — оторванная рука проползает и жмёт рычаг.
+func _gate() -> void:
+	for side: float in [-1.0, 1.0]:
+		var gate := StaticBody3D.new()
+		gate.position = Vector3(side * 1.85, 0, 2)
+		add_child(gate)
+		var col := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(1.75, 1.8, 0.08)
+		col.shape = shape
+		col.position = Vector3(-side * 0.875, 1.16, 0)
+		gate.add_child(col)
+		# сплошной лист снизу
+		MeshLib.box(gate, Vector3(1.72, 0.62, 0.06), Vector3(-side * 0.875, 0.57, 0), MeshLib.METAL.darkened(0.45))
+		# рама и прутья
+		MeshLib.box(gate, Vector3(1.75, 0.07, 0.07), Vector3(-side * 0.875, 2.02, 0), MeshLib.METAL.darkened(0.3))
+		MeshLib.box(gate, Vector3(1.75, 0.07, 0.07), Vector3(-side * 0.875, 0.9, 0), MeshLib.METAL.darkened(0.3))
+		for i in 5:
+			var bx := -side * (0.18 + i * 0.35)
+			MeshLib.box(gate, Vector3(0.06, 1.15, 0.06), Vector3(bx, 1.46, 0), MeshLib.METAL.darkened(0.35))
+			MeshLib.cone(gate, 0.06, 0.14, Vector3(bx, 2.1, 0), MeshLib.METAL.darkened(0.25))
+		# накладка-замок у свободного края: перекрывает центральный стык,
+		# чтобы нельзя было дёрнуть рычаг сквозь щель между створками
+		MeshLib.box(gate, Vector3(0.42, 0.8, 0.07), Vector3(-side * 1.62, 1.28, 0), MeshLib.METAL.darkened(0.5))
+		if side > 0:
+			MeshLib.sphere(gate, 0.09, Vector3(-side * 1.62, 1.3, -0.08), MeshLib.BONE_DARK)
+		if side < 0:
+			_gate_l = gate
+		else:
+			_gate_r = gate
+	# рычаг снаружи за воротами, на столбике
+	MeshLib.solid_box(self, Vector3(0.22, 0.55, 0.22), Vector3(0, 0.28, 0.55), MeshLib.STONE_DARK)
+	gate_lever = Lever.new()
+	gate_lever.position = Vector3(0, 0.62, 0.55)
+	gate_lever.rotation_degrees = Vector3(0, 180, 0)
+	gate_lever.prompt = "Рычаг ворот"
+	add_child(gate_lever)
+	gate_lever.activated.connect(open_gate)
+
+func open_gate() -> void:
+	if _gate_open:
+		return
+	_gate_open = true
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(_gate_l, "rotation_degrees:y", 95.0, 1.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_gate_r, "rotation_degrees:y", -95.0, 1.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	gate_opened.emit()
+
 func _graves() -> void:
+	# модельные надгробия Spooky Graveyard — 11 разных, почти без повторов
+	const GRAVES := ["grave_01", "grave_02", "grave_03", "grave_04", "grave_05", "grave_06",
+		"grave_07", "grave_08", "broken_grave_01", "broken_grave_02", "broken_grave_03",
+		"grave_02", "grave_06", "broken_grave_01"]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 13
-	for i in 14:
+	var placed := 0
+	for _attempt in 300:
+		if placed >= GRAVES.size():
+			break
 		var x := rng.randf_range(-12.0, 12.0)
 		var z := rng.randf_range(4.5, 16.5)
-		if absf(x) < 2.0 or Vector3(x, 0, z).distance_to(spawn_point) < 2.0:
+		if absf(x) < 2.0 or Vector3(x, 0, z).distance_to(spawn_point) < 2.2:
 			continue
-		var tilt := Vector3(rng.randf_range(-8, 8), rng.randf_range(0, 360), rng.randf_range(-10, 10))
-		var kind := i % 5
-		var has_mound := true
-		if kind == 0:
-			# классическая плита
-			MeshLib.solid_box(self, Vector3(0.7, 0.9, 0.18), Vector3(x, 0.45, z), MeshLib.STONE if i % 2 == 0 else MeshLib.STONE_DARK, tilt)
-		elif kind == 1:
-			# обелиск: постамент + узкий высокий столб + каменное остриё
-			var ob := Node3D.new()
-			ob.position = Vector3(x, 0, z)
-			ob.rotation_degrees = tilt
-			add_child(ob)
-			MeshLib.box(ob, Vector3(0.52, 0.18, 0.52), Vector3(0, 0.09, 0), MeshLib.STONE_DARK)
-			MeshLib.solid_box(ob, Vector3(0.3, 1.5, 0.3), Vector3(0, 0.85, 0), MeshLib.STONE)
-			MeshLib.cone(ob, 0.23, 0.45, Vector3(0, 1.8, 0), MeshLib.STONE_DARK)
-		elif kind == 2:
-			# крест
-			MeshLib.solid_box(self, Vector3(0.16, 1.1, 0.16), Vector3(x, 0.55, z), MeshLib.STONE, tilt)
-			MeshLib.box(self, Vector3(0.6, 0.14, 0.14), Vector3(x, 0.8, z), MeshLib.STONE, tilt)
-		elif kind == 3:
-			# сломанная колонна: покосившийся обломок и упавший кусок рядом
-			MeshLib.cylinder(self, 0.17, 0.75, Vector3(x, 0.35, z), MeshLib.STONE, Vector3(tilt.x, tilt.y, 14 + tilt.z))
-			MeshLib.cylinder(self, 0.15, 0.6, Vector3(x + 0.55, 0.15, z + 0.3), MeshLib.STONE_DARK, Vector3(90, tilt.y, 0))
-		else:
-			# плита, вросшая в землю
-			MeshLib.box(self, Vector3(0.85, 0.06, 1.5), Vector3(x, 0.035, z - 0.5), MeshLib.STONE_DARK, Vector3(0, tilt.y, 0))
-			MeshLib.box(self, Vector3(0.6, 0.05, 1.15), Vector3(x, 0.075, z - 0.5), MeshLib.STONE, Vector3(0, tilt.y, 0))
-			has_mound = false
-		if has_mound:
-			# холмик: два перекрывающихся плоских бокса — ниже, меньше, темнее
-			var mound_c := MeshLib.DIRT.darkened(0.3)
-			MeshLib.box(self, Vector3(0.55, 0.08, 1.05), Vector3(x, 0.04, z - 0.7), mound_c, Vector3(0, tilt.y, 0))
-			MeshLib.box(self, Vector3(0.38, 0.07, 0.8), Vector3(x, 0.09, z - 0.7), mound_c.lightened(0.05), Vector3(0, tilt.y + 12, 0))
+		var tilt_y := rng.randf_range(0, 360)
+		ModelLib.grave(self, GRAVES[placed], Vector3(x, 0, z), tilt_y)
+		# холмик
+		var mound_c := MeshLib.DIRT.darkened(0.3)
+		MeshLib.box(self, Vector3(0.55, 0.08, 1.05), Vector3(x, 0.04, z - 0.7), mound_c, Vector3(0, tilt_y, 0))
+		placed += 1
 	# открытая могила игрока
 	MeshLib.box(self, Vector3(1.0, 0.14, 2.0), Vector3(spawn_point.x, 0.02, spawn_point.z), Color(0.08, 0.06, 0.05))
 	MeshLib.box(self, Vector3(1.3, 0.3, 0.4), Vector3(spawn_point.x, 0.1, spawn_point.z + 1.3), MeshLib.DIRT.darkened(0.25))
-	var stone := MeshLib.solid_box(self, Vector3(0.8, 1.0, 0.2), Vector3(spawn_point.x, 0.5, spawn_point.z - 1.2), MeshLib.STONE, Vector3(-6, 0, 3))
-	MeshLib.label(stone, "ЗДЕСЬ\nБЫЛ Я", Vector3(0, 0.1, -0.15), 40, Color(0.2, 0.2, 0.25))
+	var stone := ModelLib.grave(self, "grave_04", Vector3(spawn_point.x, 0, spawn_point.z - 1.2), 0)
+	MeshLib.label(stone, "ЗДЕСЬ\nБЫЛ Я", Vector3(0, 1.05, -0.3), 40, Color(0.75, 0.75, 0.8))
 
 func _trees() -> void:
 	for data in [Vector3(-11, 0, 16), Vector3(11.5, 0, 15), Vector3(-12, 0, 5), Vector3(9, 0, 4),
@@ -122,15 +163,19 @@ func _trees() -> void:
 		tree.add_child(body)
 
 func _path_and_lamps() -> void:
-	# дорожка от ворот к дому (дом на z ≈ -22.5)
+	# дорожка от ворот изгибается к кухонному крыльцу особняка (x -7, z ≈ -22)
 	for i in 13:
 		var z := 1.0 - i * 2.0
-		MeshLib.box(self, Vector3(2.0, 0.06, 1.6), Vector3(randf_range(-0.15, 0.15), 0.03, z), MeshLib.DIRT.darkened(0.1))
-	# фонари
+		var t := clampf((1.0 - z) / 18.0, 0.0, 1.0)
+		var x := lerpf(0.0, -7.0, t * t * (3.0 - 2.0 * t))
+		MeshLib.box(self, Vector3(2.0, 0.06, 1.6), Vector3(x + randf_range(-0.15, 0.15), 0.03, z), MeshLib.DIRT.darkened(0.1))
+	# фонари вдоль изгиба
 	for z in [0.0, -8.0, -16.0]:
+		var t := clampf((1.0 - z) / 18.0, 0.0, 1.0)
+		var px := lerpf(0.0, -7.0, t * t * (3.0 - 2.0 * t))
 		for sx in [-1.6, 1.6]:
 			var lamp := Node3D.new()
-			lamp.position = Vector3(sx, 0, z)
+			lamp.position = Vector3(px + sx, 0, z)
 			add_child(lamp)
 			MeshLib.solid_box(lamp, Vector3(0.12, 2.4, 0.12), Vector3(0, 1.2, 0), MeshLib.STONE_DARK)
 			var bulb := MeshLib.sphere(lamp, 0.16, Vector3(0, 2.5, 0), Color(1.0, 0.85, 0.5))

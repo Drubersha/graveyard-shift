@@ -1,6 +1,10 @@
 # Godot 4 internal cache
 .godot/
 
+# Исходники ассет-паков (в гите — только используемое, в assets/ext/)
+models+/
+Waiting/
+
 # Exported builds
 build/
 *.exe

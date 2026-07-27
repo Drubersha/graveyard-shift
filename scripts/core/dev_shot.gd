@@ -8,6 +8,7 @@ var _shot_path := ""
 var _quit_frame := -1
 var _frame := 0
 var _teleport := Vector3.INF  # --tp=x,y,z — телепорт игрока перед скриншотом
+var _loc := ""                # --loc=indoor — переключить локацию перед скриншотом
 
 func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
@@ -16,6 +17,8 @@ func _ready() -> void:
 			_quit_frame = 90
 		elif arg.begins_with("--smoke="):
 			_quit_frame = int(arg.trim_prefix("--smoke="))
+		elif arg.begins_with("--loc="):
+			_loc = arg.trim_prefix("--loc=")
 		elif arg.begins_with("--tp="):
 			var parts := arg.trim_prefix("--tp=").split(",")
 			if parts.size() == 3:
@@ -25,13 +28,21 @@ func _ready() -> void:
 			if st:
 				var node: Node = (st as GDScript).new()
 				add_child.call_deferred(node)
+	if _loc != "" and _shot_path != "":
+		_quit_frame = 170
 
 func _process(_delta: float) -> void:
 	if _quit_frame < 0:
 		return
 	_frame += 1
-	if _frame == 5 and _teleport != Vector3.INF and is_instance_valid(Game.player_skeleton):
-		Game.player_skeleton.global_position = _teleport
+	if _frame == 8 and _loc != "" and Game.main_node:
+		Game.main_node.switch_location(_loc)
+	var tp_frame := 110 if _loc != "" else 5
+	if _frame == tp_frame and _teleport != Vector3.INF and is_instance_valid(Game.player_skeleton):
+		var skel := Game.player_skeleton as SkeletonPlayer
+		if skel.state == SkeletonPlayer.State.SHATTERED:
+			skel.force_reassemble()
+		skel.global_position = _teleport
 	if _frame >= _quit_frame:
 		if _shot_path != "":
 			var img := get_viewport().get_texture().get_image()

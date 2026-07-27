@@ -9,6 +9,7 @@ var _cooldown: Label
 var _meter: ProgressBar
 var _meter_label: Label
 var _charge_bar: ProgressBar
+var _fade: ColorRect
 var _hint_timer := 0.0
 
 func _ready() -> void:
@@ -61,8 +62,20 @@ R — рассыпаться  |  Tab — тело/рука  |  Esc — мышь"
 	_set_rect(_charge_bar, 0.5, 1.0, -90, -172, 180, 10)
 	_charge_bar.visible = false
 
+	# фейд для перехода между локациями
+	_fade = ColorRect.new()
+	_fade.color = Color(0.03, 0.02, 0.05, 0.0)
+	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_fade)
+
 	Game.objective_changed.connect(func(text: String) -> void: _objective.text = text)
 	Game.hint_shown.connect(_show_hint)
+
+func fade_to(alpha: float, duration: float, on_done: Callable) -> void:
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", alpha, duration)
+	tw.tween_callback(on_done)
 
 func _make_label(parent: Control, size: int, align: HorizontalAlignment) -> Label:
 	var l := Label.new()

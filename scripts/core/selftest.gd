@@ -38,12 +38,18 @@ func _physics_process(_delta: float) -> void:
 	match _step:
 		0:
 			_skel = Game.player_skeleton as SkeletonPlayer
-			_mansion = get_tree().get_first_node_in_group("mansion") as Mansion
-			if not _skel or not _mansion:
-				_fail("нет скелета или особняка")
+			if not _skel:
+				_fail("нет скелета")
 				_finish()
 				return
-			_wait = 60
+			# старт игры — рассыпанным (пролог): ждём сборку
+			if _skel.state != SkeletonPlayer.State.ACTIVE:
+				if _frames > 1200:
+					_fail("стартовая сборка так и не случилась")
+					_finish()
+				return
+			_ok("стартовое рассыпание собралось (пролог)")
+			_wait = 10
 			_step = 1
 		1:
 			# чистый участок дорожки двора
@@ -166,6 +172,17 @@ func _physics_process(_delta: float) -> void:
 				_fail("пыль не почистилась веником")
 			_step = 19
 		19:
+			# переключаемся в интерьер особняка (отдельная локация)
+			if Game.main_node.location_name != "indoor":
+				Game.main_node.switch_location("indoor")
+				_wait = 90
+				return
+			_mansion = get_tree().get_first_node_in_group("mansion") as Mansion
+			if not _mansion or _mansion.mode != "interior":
+				_fail("интерьер особняка не загрузился")
+				_finish()
+				return
+			_ok("локация переключилась: улица → интерьер")
 			# мойка отмывает грязную тарелку
 			_sink_plate = BreakableProp.make(get_tree().current_scene, "plate_dirty", Vector3.ZERO)
 			_sink_plate.global_position = _mansion.sink.global_position + Vector3(0, 1.15, 0)
@@ -176,16 +193,21 @@ func _physics_process(_delta: float) -> void:
 				_ok("мойка отмыла тарелку")
 			else:
 				_fail("тарелка не отмылась в раковине")
+				print("  DIAG: plate valid=", is_instance_valid(_sink_plate),
+					" kind=", _sink_plate.kind if is_instance_valid(_sink_plate) else "-",
+					" pos=", _sink_plate.global_position if is_instance_valid(_sink_plate) else Vector3.INF,
+					" sink=", _mansion.sink.global_position)
 			_step = 21
 		21:
-			# плита: кладём рецепт и готовим
+			# плита: кладём рецепт аккуратно на поверхность (по top_y) и готовим
 			var sp := _mansion.stove.global_position
+			var ty: float = _mansion.stove.top_y
 			var egg := BreakableProp.make(get_tree().current_scene, "egg", Vector3.ZERO)
-			egg.global_position = sp + Vector3(0, 1.11, -0.25)
+			egg.global_position = sp + Vector3(0, ty + 0.1, -0.25)
 			var flour := BreakableProp.make(get_tree().current_scene, "flour", Vector3.ZERO)
-			flour.global_position = sp + Vector3(0, 1.23, 0)
+			flour.global_position = sp + Vector3(0, ty + 0.23, 0)
 			var wine := BreakableProp.make(get_tree().current_scene, "bottle", Vector3.ZERO)
-			wine.global_position = sp + Vector3(0, 1.17, 0.25)
+			wine.global_position = sp + Vector3(0, ty + 0.17, 0.25)
 			_wait = 25
 			_step = 22
 		22:
@@ -197,6 +219,9 @@ func _physics_process(_delta: float) -> void:
 				_ok("плита приготовила завтрак из ингредиентов")
 			else:
 				_fail("плита не приготовила завтрак")
+				print("  DIAG: stove top_y=", _mansion.stove.top_y, " zone_bodies:")
+				for b in _mansion.stove._zone.get_overlapping_bodies():
+					print("    ", b, " kind=", b.kind if b is BreakableProp else "-", " pos=", (b as Node3D).global_position)
 			_step = 24
 		24:
 			# подача завтрака на диван

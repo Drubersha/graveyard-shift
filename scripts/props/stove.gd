@@ -9,12 +9,41 @@ const RECIPE_NAMES := {"egg": "яйцо", "flour": "мука", "bottle": "вин
 
 var prompt := "Готовить завтрак"
 var cooked_once := false
+var model_path := ""   # модель плиты из хауспака вместо процедурного корпуса
+var top_y := 1.0       # высота варочной поверхности (для спавна завтрака)
 var _breakfast: BreakableProp = null
 var _zone: Area3D
 var _flame: MeshInstance3D
 
 func _ready() -> void:
 	add_to_group("interactable")
+	if model_path == "":
+		_build_procedural()
+	else:
+		var vis := ModelLib.visual(self, model_path, Vector3.ZERO, 180.0, ModelLib.HOUSE_SCALE)
+		var aabb := ModelLib.merged_aabb(vis)  # масштаб уже внутри
+		top_y = aabb.size.y * 0.98
+		var col := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = aabb.size.max(Vector3(0.3, 0.3, 0.3)) * 0.95
+		col.shape = shape
+		col.position = aabb.position + aabb.size * 0.5
+		add_child(col)
+	# зелёное ведьминское пламя над конфоркой (жутко, но работает)
+	_flame = MeshLib.sphere(self, 0.08, Vector3(0, top_y + 0.04, 0), MeshLib.ACCENT, 0.5)
+	_flame.material_override = MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)
+	_flame.visible = false
+	# зона приёма ингредиентов над плитой
+	_zone = Area3D.new()
+	_zone.position = Vector3(0, top_y + 0.38, 0)
+	var zc := CollisionShape3D.new()
+	var zs := BoxShape3D.new()
+	zs.size = Vector3(1.3, 0.85, 1.1)
+	zc.shape = zs
+	_zone.add_child(zc)
+	add_child(_zone)
+
+func _build_procedural() -> void:
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(0.9, 0.95, 0.65)
@@ -30,21 +59,8 @@ func _ready() -> void:
 	MeshLib.box(self, Vector3(0.6, 0.35, 0.03), Vector3(0, 0.45, -0.33), Color(0.2, 0.16, 0.12))
 	MeshLib.box(self, Vector3(0.5, 0.25, 0.02), Vector3(0, 0.45, -0.34), Color(0.9, 0.6, 0.3)) \
 		.material_override = MeshLib.mat(Color(0.9, 0.6, 0.3), 1.0, 0.0, Color(0.8, 0.4, 0.1))
-	# труба-вытяжка
 	MeshLib.box(self, Vector3(0.5, 0.5, 0.4), Vector3(0, 1.6, 0.1), MeshLib.METAL.darkened(0.5))
-	# зелёное ведьминское пламя под конфоркой (жутко, но работает)
-	_flame = MeshLib.sphere(self, 0.08, Vector3(0, 1.02, 0), MeshLib.ACCENT, 0.5)
-	_flame.material_override = MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)
-	_flame.visible = false
-	# зона приёма ингредиентов над плитой
-	_zone = Area3D.new()
-	_zone.position = Vector3(0, 1.35, 0)
-	var zc := CollisionShape3D.new()
-	var zs := BoxShape3D.new()
-	zs.size = Vector3(1.3, 0.85, 1.1)
-	zc.shape = zs
-	_zone.add_child(zc)
-	add_child(_zone)
+	top_y = 1.0
 
 func get_prompt() -> String:
 	if cooked_once and not is_instance_valid(_breakfast):
@@ -82,4 +98,4 @@ func _serve_plate() -> void:
 	tw.tween_property(_flame, "scale", Vector3.ONE, 0.25)
 	tw.tween_callback(func() -> void: _flame.visible = false)
 	_breakfast = BreakableProp.make(get_parent(), "breakfast", Vector3.ZERO)
-	_breakfast.position = position + Vector3(0, 1.15, 0)
+	_breakfast.position = position + Vector3(0, top_y + 0.15, 0)
