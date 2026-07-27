@@ -8,6 +8,7 @@ var _prompt: Label
 var _cooldown: Label
 var _meter: ProgressBar
 var _meter_label: Label
+var _charge_bar: ProgressBar
 var _hint_timer := 0.0
 
 func _ready() -> void:
@@ -52,6 +53,14 @@ R — рассыпаться  |  Tab — тело/рука  |  Esc — мышь"
 	crosshair.text = "·"
 	_set_rect(crosshair, 0.5, 0.5, -10, -16, 20, 20)
 
+	# заряд броска — тонкая полоска над промптом
+	_charge_bar = ProgressBar.new()
+	_charge_bar.show_percentage = false
+	_charge_bar.max_value = 1.0
+	root.add_child(_charge_bar)
+	_set_rect(_charge_bar, 0.5, 1.0, -90, -172, 180, 10)
+	_charge_bar.visible = false
+
 	Game.objective_changed.connect(func(text: String) -> void: _objective.text = text)
 	Game.hint_shown.connect(_show_hint)
 
@@ -93,7 +102,7 @@ func _physics_process(_delta: float) -> void:
 	_prompt.text = ""
 	var possessed := Game.possessed
 	if is_instance_valid(possessed):
-		var best_d := 2.3
+		var best_d := 2.4  # = INTERACT_RANGE скелета
 		var best: Node = null
 		for node in possessed.get_tree().get_nodes_in_group("interactable"):
 			if node is Node3D and node.has_method("get_prompt"):
@@ -114,6 +123,13 @@ func _update_meters() -> void:
 		_meter_label.text = "СРАЧ: %d / %d" % [Game.mess_points, Game.mess_target]
 	else:
 		_meter.visible = false
+	# заряд броска
+	var charge_skel := Game.player_skeleton as SkeletonPlayer
+	if charge_skel and Game.is_possessed(charge_skel) and charge_skel.charge_ratio() > 0.0:
+		_charge_bar.visible = true
+		_charge_bar.value = charge_skel.charge_ratio()
+	else:
+		_charge_bar.visible = false
 	# кулдаун рассыпания
 	var skel := Game.player_skeleton as SkeletonPlayer
 	if skel and skel.state == SkeletonPlayer.State.SHATTERED:

@@ -78,8 +78,8 @@ func _build_visual() -> void:
 	_visual.add_child(_skull_vis)
 	MeshLib.sphere(_skull_vis, 0.17, Vector3.ZERO, MeshLib.BONE)
 	MeshLib.box(_skull_vis, Vector3(0.16, 0.1, 0.12), Vector3(0, -0.13, -0.03), MeshLib.BONE)
-	var eye_l := MeshLib.sphere(_skull_vis, 0.035, Vector3(-0.06, 0.02, -0.14), Color.BLACK)
-	var eye_r := MeshLib.sphere(_skull_vis, 0.035, Vector3(0.06, 0.02, -0.14), Color.BLACK)
+	var eye_l := MeshLib.sphere(_skull_vis, 0.042, Vector3(-0.062, 0.02, -0.155), Color.BLACK)
+	var eye_r := MeshLib.sphere(_skull_vis, 0.042, Vector3(0.062, 0.02, -0.155), Color.BLACK)
 	eye_l.material_override = MeshLib.mat(Color.BLACK, 1.0)
 	eye_r.material_override = MeshLib.mat(Color.BLACK, 1.0)
 	# руки
@@ -209,7 +209,8 @@ func _handle_actions(delta: float) -> void:
 		_toggle_arm()
 	elif Input.is_action_just_pressed("collapse"):
 		shatter(Vector3.UP)
-	elif Input.is_action_just_pressed("switch_body"):
+	elif Input.is_action_just_pressed("switch_body") \
+			and Game.last_switch_frame != int(Engine.get_physics_frames()):
 		if is_instance_valid(arm_entity):
 			Game.possess(arm_entity)
 
@@ -226,7 +227,7 @@ func _try_grab() -> void:
 		if not rb or rb.mass > 25.0:
 			continue
 		var d := rb.global_position.distance_to(_hold_point())
-		if d < best_d:
+		if d < best_d and Game.has_line_of_sight(self, rb):
 			best_d = d
 			best = rb
 	if best:
@@ -385,6 +386,10 @@ func _tick_shattered(delta: float) -> void:
 
 func cooldown_ratio() -> float:
 	return clampf(_cooldown_left / REASSEMBLE_COOLDOWN, 0.0, 1.0)
+
+## Текущий заряд броска (0..1) для индикатора на HUD.
+func charge_ratio() -> float:
+	return _charge if _charging_action != "" else 0.0
 
 func _begin_gather() -> void:
 	_gathering = true

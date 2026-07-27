@@ -2,6 +2,8 @@ class_name BreakableProp extends RigidBody3D
 ## Ломаемый предмет. Создаётся кодом: BreakableProp.make(parent, kind, pos).
 ## От сильного удара разлетается на осколки и добавляет очки срача (Game.add_mess).
 
+signal destroyed  # эмитится при разбитии (для счётчиков миссий)
+
 const KINDS := {
 	# kind: [размер визуала, цвет, масса, порог удара (м/с), очки срача]
 	"vase":    [Vector3(0.26, 0.4, 0.26), Color(0.5, 0.65, 0.75), 2.0, 2.6, 15],
@@ -15,6 +17,11 @@ const KINDS := {
 	"lamp":    [Vector3(0.22, 1.4, 0.22), Color(0.6, 0.55, 0.4), 4.0, 3.0, 20],
 	"skullpot":[Vector3(0.24, 0.24, 0.24), MeshLib.BONE_DARK, 2.0, 2.6, 15],
 	"crate":   [Vector3(0.5, 0.5, 0.5), MeshLib.WOOD, 8.0, 4.2, 15],
+	# бытовуха
+	"plate_dirty": [Vector3(0.24, 0.05, 0.24), Color(0.62, 0.64, 0.5), 1.0, 2.0, 5],
+	"egg":     [Vector3(0.13, 0.17, 0.13), Color(0.95, 0.93, 0.85), 0.4, 1.3, 2],
+	"flour":   [Vector3(0.3, 0.42, 0.24), Color(0.85, 0.82, 0.72), 2.5, 3.2, 5],
+	"breakfast": [Vector3(0.28, 0.1, 0.28), Color(0.88, 0.86, 0.9), 1.2, 2.4, 5],
 }
 
 var kind := "vase"
@@ -58,6 +65,10 @@ func _build_visual() -> void:
 		"vase":
 			MeshLib.cylinder(self, size.x * 0.5, size.y, Vector3.ZERO, color, Vector3.ZERO, size.x * 0.32)
 			MeshLib.cylinder(self, size.x * 0.36, 0.08, Vector3(0, size.y * 0.55, 0), color)
+		"pot":
+			MeshLib.sphere(self, size.x * 0.55, Vector3(0, -0.02, 0), color, 0.85)
+			MeshLib.cylinder(self, size.x * 0.34, 0.07, Vector3(0, size.y * 0.42, 0), color.darkened(0.15))
+			MeshLib.capsule(self, 0.02, 0.22, Vector3(size.x * 0.52, 0.02, 0), color.darkened(0.2), Vector3(0, 0, 90))
 		"bottle":
 			MeshLib.cylinder(self, size.x * 0.5, size.y * 0.75, Vector3(0, -size.y * 0.1, 0), color)
 			MeshLib.cylinder(self, size.x * 0.2, size.y * 0.35, Vector3(0, size.y * 0.35, 0), color)
@@ -89,6 +100,26 @@ func _build_visual() -> void:
 			MeshLib.sphere(self, size.x * 0.5, Vector3.ZERO, color)
 			MeshLib.sphere(self, 0.03, Vector3(-0.05, 0.03, -size.x * 0.42), Color.BLACK)
 			MeshLib.sphere(self, 0.03, Vector3(0.05, 0.03, -size.x * 0.42), Color.BLACK)
+		"plate_dirty":
+			MeshLib.cylinder(self, size.x * 0.5, size.y, Vector3.ZERO, color)
+			# засохшие остатки — мелкие тёмные нашлёпки
+			MeshLib.cylinder(self, 0.05, 0.02, Vector3(0.05, size.y * 0.6, 0.03), Color(0.35, 0.3, 0.18))
+			MeshLib.cylinder(self, 0.035, 0.02, Vector3(-0.06, size.y * 0.6, -0.04), Color(0.3, 0.33, 0.15))
+		"egg":
+			MeshLib.sphere(self, size.x * 0.5, Vector3.ZERO, color, 1.3)
+		"flour":
+			# мешок с перевязанной горловиной
+			MeshLib.box(self, Vector3(size.x, size.y * 0.75, size.z), Vector3(0, -size.y * 0.1, 0), color)
+			MeshLib.cylinder(self, size.x * 0.28, size.y * 0.22, Vector3(0, size.y * 0.38, 0), color.darkened(0.1))
+			MeshLib.box(self, Vector3(size.x * 0.66, 0.05, 0.03), Vector3(0, size.y * 0.3, -size.z * 0.4), Color(0.5, 0.3, 0.2))
+		"breakfast":
+			MeshLib.cylinder(self, size.x * 0.5, 0.04, Vector3.ZERO, Color(0.9, 0.9, 0.95))
+			# глазунья и что-то мясное
+			MeshLib.cylinder(self, 0.07, 0.02, Vector3(0.05, 0.04, 0.03), Color(0.95, 0.95, 0.9))
+			MeshLib.sphere(self, 0.03, Vector3(0.05, 0.05, 0.03), Color(0.95, 0.75, 0.2))
+			MeshLib.cylinder(self, 0.055, 0.02, Vector3(-0.07, 0.04, -0.04), Color(0.95, 0.95, 0.9))
+			MeshLib.sphere(self, 0.026, Vector3(-0.07, 0.05, -0.04), Color(0.95, 0.75, 0.2))
+			MeshLib.box(self, Vector3(0.1, 0.025, 0.05), Vector3(0, 0.04, 0.09), Color(0.6, 0.3, 0.25))
 		_:
 			MeshLib.box(self, size, Vector3.ZERO, color)
 
@@ -107,11 +138,23 @@ func _on_body_entered(body: Node) -> void:
 	if impact >= break_threshold:
 		shatter_prop()
 
+## Отмыть грязную тарелку: перестраиваем визуал под чистую.
+func wash() -> void:
+	if kind != "plate_dirty" or broken:
+		return
+	kind = "plate"
+	color = KINDS["plate"][1]
+	for child in get_children():
+		if child is MeshInstance3D:
+			child.queue_free()
+	_build_visual()
+
 func shatter_prop() -> void:
 	if broken:
 		return
 	broken = true
 	Game.add_mess(mess_value)
+	destroyed.emit()
 	# осколки
 	var n := clampi(int(size.length() * 6.0), 4, 9)
 	for i in n:
@@ -128,4 +171,8 @@ func shatter_prop() -> void:
 		piece.global_position = global_position + Vector3(randf_range(-0.2, 0.2), randf_range(0, 0.3), randf_range(-0.2, 0.2))
 		piece.linear_velocity = linear_velocity + Vector3(randf_range(-3, 3), randf_range(1, 4), randf_range(-3, 3))
 		piece.angular_velocity = Vector3(randf_range(-8, 8), randf_range(-8, 8), randf_range(-8, 8))
+		# через 8 с осколок замерзает: срач остаётся лежать, физика больше не тратится
+		get_tree().create_timer(8.0).timeout.connect(func() -> void:
+			if is_instance_valid(piece):
+				piece.freeze = true)
 	queue_free()

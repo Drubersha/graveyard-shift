@@ -7,18 +7,15 @@ func _ready() -> void:
 	add_child(rig)
 	var graveyard := GraveyardScene.new()
 	add_child(graveyard)
-	var house := WitchHouse.new()
-	house.position = Vector3(0, 0, -26)
-	add_child(house)
+	var mansion := Mansion.new()
+	mansion.position = Vector3(0, 0, -27)
+	add_child(mansion)
 	var skel := SkeletonPlayer.new()
 	add_child(skel)
 	skel.global_position = graveyard.spawn_point
 	add_child(GameHUD.new())
 	var mission := TutorialMission.new()
-	mission.door = house.front_door
-	mission.lever = house.door_lever
-	mission.witch = house.witch
-	mission.vent_marker = house.vent_marker
+	mission.mansion = mansion
 	mission.player = skel
 	add_child(mission)
 

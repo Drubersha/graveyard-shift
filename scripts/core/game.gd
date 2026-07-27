@@ -12,6 +12,9 @@ var player_skeleton: Node3D = null
 var camera_rig: Node3D = null
 var mess_points: int = 0
 var mess_target: int = 0  # >0 — HUD показывает срач-о-метр
+# кадр последней смены possession: гасит двойное срабатывание Tab,
+# когда скелет и рука обрабатывают один и тот же is_action_just_pressed
+var last_switch_frame := -1
 
 func _ready() -> void:
 	_setup_input()
@@ -21,6 +24,7 @@ func _ready() -> void:
 func possess(node: Node3D) -> void:
 	if possessed == node:
 		return
+	last_switch_frame = Engine.get_physics_frames()
 	var prev := possessed
 	possessed = node
 	if is_instance_valid(prev) and prev.has_method("on_unpossess"):

@@ -37,6 +37,8 @@ func _build_visual() -> void:
 	MeshLib.capsule(_visual, 0.022, 0.12, Vector3(0.13, 0, 0.02), MeshLib.BONE, Vector3(0, 0, 90))
 	# торчащая кость предплечья
 	MeshLib.capsule(_visual, 0.035, 0.22, Vector3(0, 0.04, 0.2), MeshLib.BONE_DARK, Vector3(70, 0, 0))
+	# маркер, чтобы руку было видно издалека
+	MeshLib.label(self, "РУКА", Vector3(0, 0.65, 0), 28, MeshLib.ACCENT)
 
 func _physics_process(delta: float) -> void:
 	if not Game.is_possessed(self):
@@ -58,7 +60,8 @@ func _physics_process(delta: float) -> void:
 		apply_central_impulse(Vector3.UP * HOP_IMPULSE)
 	if Input.is_action_just_pressed("interact"):
 		_try_interact()
-	if Input.is_action_just_pressed("switch_body") or Input.is_action_just_pressed("detach_arm"):
+	if (Input.is_action_just_pressed("switch_body") or Input.is_action_just_pressed("detach_arm")) \
+			and Game.last_switch_frame != int(Engine.get_physics_frames()):
 		if is_instance_valid(owner_skeleton):
 			Game.possess(owner_skeleton)
 
