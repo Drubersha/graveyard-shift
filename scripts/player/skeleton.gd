@@ -28,6 +28,8 @@ var skull_attached := true
 var skull_entity: SkullEntity = null
 var held: RigidBody3D = null
 
+var _held_layer := 1
+var _held_mask := 1
 var _charge := 0.0                 # общий заряд броска (предмет или череп)
 var _charging_action := ""         # "grab" или "throw_skull"
 var _cooldown_left := 0.0
@@ -243,9 +245,31 @@ func _try_grab() -> void:
 			best_d = d
 			best = rb
 	if best:
-		held = best
-		held.freeze = true
+		_take(best)
 		Game.hint("Короткий клик ЛКМ — поставить аккуратно. Держать и отпустить — швырнуть.")
+
+## Взять предмет: он «выключается» из физики, чтобы не толкать хозяина и не биться в руках.
+func _take(rb: RigidBody3D) -> void:
+	held = rb
+	rb.freeze = true
+	rb.linear_velocity = Vector3.ZERO
+	rb.angular_velocity = Vector3.ZERO
+	_held_layer = rb.collision_layer
+	_held_mask = rb.collision_mask
+	rb.collision_layer = 0
+	rb.collision_mask = 0
+	if rb is BreakableProp:
+		(rb as BreakableProp).carried = true
+	Game.item_picked.emit(rb)
+
+## Вернуть предмету физику (общая часть для «поставить» и «швырнуть»).
+func _release_physics(rb: RigidBody3D) -> void:
+	rb.collision_layer = _held_layer if _held_layer != 0 else 1
+	rb.collision_mask = _held_mask if _held_mask != 0 else 1
+	rb.freeze = false
+	if rb is BreakableProp:
+		(rb as BreakableProp).carried = false
+	Game.item_picked.emit(null)
 
 func _update_held() -> void:
 	if not is_instance_valid(held):
@@ -258,10 +282,11 @@ func _throw_held(power: float) -> void:
 		held = null
 		return
 	var rig := Game.camera_rig as CameraRig
-	held.freeze = false
-	held.linear_velocity = (rig.aim() if rig else Vector3.FORWARD) * power + Vector3.UP * 1.5
-	held.angular_velocity = Vector3(randf_range(-5, 5), randf_range(-5, 5), randf_range(-5, 5))
+	var rb := held
 	held = null
+	_release_physics(rb)
+	rb.linear_velocity = (rig.aim() if rig else Vector3.FORWARD) * power + Vector3.UP * 1.5
+	rb.angular_velocity = Vector3(randf_range(-5, 5), randf_range(-5, 5), randf_range(-5, 5))
 
 ## Аккуратно поставить предмет на поверхность перед собой — без импульса,
 ## ровно и не разбив. Короткий клик ЛКМ.
@@ -275,16 +300,16 @@ func _place_held() -> void:
 	var params := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 2.5, 1, [rb.get_rid(), get_rid()])
 	var hit := get_world_3d().direct_space_state.intersect_ray(params)
 	if hit:
-		rb.global_position = (hit["position"] as Vector3) + Vector3.UP * 0.1
+		rb.global_position = (hit["position"] as Vector3) + Vector3.UP * 0.12
 	rb.global_rotation = Vector3(0, rb.global_rotation.y, 0)
-	rb.freeze = false
+	_release_physics(rb)
 	rb.linear_velocity = Vector3.ZERO
 	rb.angular_velocity = Vector3.ZERO
 	Game.hint("Поставил. Целую.")
 
 func _release_held() -> void:
 	if is_instance_valid(held):
-		held.freeze = false
+		_release_physics(held)
 	held = null
 
 # ---------------------------------------------------------------- взаимодействие

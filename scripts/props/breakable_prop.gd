@@ -4,6 +4,16 @@ class_name BreakableProp extends RigidBody3D
 
 signal destroyed  # эмитится при разбитии (для счётчиков миссий)
 
+## Подписи процедурных предметов для интерфейса: ID_Название.
+const LABELS := {
+	"vase": "201_Vase_Tall", "pot": "202_Clay_Pot", "bottle": "203_Wine_Bottle",
+	"plate": "204_Plate_Clean", "chair": "205_Chair_Old", "table": "206_Table_Wooden",
+	"shelf": "207_Shelf_Tall", "tv": "208_TV_Ancient", "lamp": "209_Lamp_Floor",
+	"skullpot": "210_Skull_Pot", "crate": "211_Crate_Small",
+	"plate_dirty": "212_Plate_Dirty", "egg": "213_Egg_Fresh", "flour": "214_Flour_Sack",
+	"breakfast": "215_Breakfast_Plate",
+}
+
 const KINDS := {
 	# kind: [размер визуала, цвет, масса, порог удара (м/с), очки срача]
 	"vase":    [Vector3(0.26, 0.4, 0.26), Color(0.5, 0.65, 0.75), 2.0, 2.6, 15],
@@ -28,6 +38,8 @@ var kind := "vase"
 var mess_value := 10
 var break_threshold := 3.0
 var broken := false
+var carried := false   # в руках — не бьётся, что бы ни задело
+var id := -1           # индекс для сохранения прогресса между локациями
 var size := Vector3.ONE
 var color := Color.WHITE
 # скорость прошлого кадра: в body_entered текущая скорость уже погашена решателем,
@@ -50,6 +62,7 @@ func _ready() -> void:
 	break_threshold = cfg[3]
 	mess_value = cfg[4]
 	add_to_group("grabbable")
+	set_meta("item_label", LABELS.get(kind, kind))
 	contact_monitor = true
 	max_contacts_reported = 4
 	body_entered.connect(_on_body_entered)
@@ -127,7 +140,7 @@ func _physics_process(_delta: float) -> void:
 	_prev_vel = linear_velocity
 
 func _on_body_entered(body: Node) -> void:
-	if broken:
+	if broken or carried:
 		return
 	var other_vel := Vector3.ZERO
 	if body is RigidBody3D:
@@ -144,6 +157,7 @@ func wash() -> void:
 		return
 	kind = "plate"
 	color = KINDS["plate"][1]
+	set_meta("item_label", LABELS["plate"])
 	for child in get_children():
 		if child is MeshInstance3D:
 			child.queue_free()

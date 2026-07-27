@@ -21,7 +21,7 @@ const IDLE_LINES: Array[String] = [
 	"В доме девятнадцать комнат. Убираю я — ноль.",
 ]
 
-const MODEL := "res://assets/ext/woman/Animated Woman.fbx"
+const MODEL := "Animated Woman"
 const SKIN := "res://assets/ext/woman/LightSkin.png"
 const MODEL_SCALE := 0.35  # модель в FBX ~5 м ростом
 

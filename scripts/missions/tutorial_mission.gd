@@ -61,11 +61,13 @@ func bind_indoor(m: Mansion) -> void:
 	cellar = null
 	mansion = m
 	for d in m.dust_list:
-		d.cleaned.connect(_on_dust)
+		d.cleaned.connect(_on_dust.bind(d))
 	m.sink.washed.connect(_on_plate_washed)
 	for p in m.dirty_plates:
 		p.destroyed.connect(_on_plate_broken.bind(p))
-	m.pantry_lever.activated.connect(m.pantry_door.open)
+	m.pantry_lever.activated.connect(func() -> void:
+		Game.world_state["pantry_open"] = true    # дверь останется открытой и после подвала
+		m.pantry_door.open())
 	m.stove.cooked.connect(_on_cooked)
 	m.serve_zone.served.connect(_on_served)
 	m.witch.talked.connect(_on_talk)
@@ -198,8 +200,10 @@ func _on_talk() -> void:
 
 # ---------------------------------------------------------------- уборка/посуда/завтрак
 
-func _on_dust() -> void:
-	_dust_done += 1
+func _on_dust(patch: DustPatch = null) -> void:
+	if patch and patch.id >= 0:
+		Game.mark("dust_cleaned", patch.id)
+	_dust_done = Game.world_state["dust_cleaned"].size()
 	if stage != Stage.SWEEP:
 		return
 	if _dust_done >= _dust_total:
@@ -218,13 +222,20 @@ func _objective_sweep() -> void:
 	Game.objective_changed.emit("«Уборка», часть 1: подмети кухню (%d/%d). Метла — твой лучший друг. Единственный друг." % [_dust_done, _dust_total])
 
 func _on_plate_washed() -> void:
-	_plates_done = mini(_plates_done + 1, _plates_total)
+	var skel := player as SkeletonPlayer
+	if skel and is_instance_valid(skel.held) and skel.held is BreakableProp:
+		var p := skel.held as BreakableProp
+		if p.id >= 0:
+			Game.mark("plates_done", p.id)
+	_plates_done = maxi(_plates_done + 1, Game.world_state["plates_done"].size())
 	_after_plate()
 
 func _on_plate_broken(plate: BreakableProp) -> void:
 	if plate.kind != "plate_dirty":
 		return
-	_plates_done = mini(_plates_done + 1, _plates_total)
+	if plate.id >= 0:
+		Game.mark("plates_done", plate.id)
+	_plates_done = maxi(_plates_done + 1, Game.world_state["plates_done"].size())
 	if stage == Stage.DISHES and mansion:
 		mansion.witch.say("Минус тарелка — минус проблема.", 3.0)
 	_after_plate()

@@ -96,7 +96,7 @@ func _stairs_up(base: Vector3, prompt: String, spawn_id_up: String, spawn_id_her
 	MeshLib.label(self, "▲", Vector3(base.x, 2.1, base.z - 0.4), 56, MeshLib.ACCENT)
 
 func _torch(pos: Vector3, rot_y := 0.0) -> void:
-	ModelLib.visual(self, ModelLib.KIT + "Torch_Metal.gltf", pos, rot_y)
+	ModelLib.visual(self, "Torch_Metal", pos, rot_y)
 	var l := OmniLight3D.new()
 	l.position = pos + Vector3(0, 0.35, 0)
 	l.light_color = Color(1.0, 0.55, 0.2)
@@ -109,24 +109,24 @@ func _torch(pos: Vector3, rot_y := 0.0) -> void:
 func _cellar_room() -> void:
 	# стеллажи с вином вдоль стен
 	for i in 3:
-		ModelLib.solid(self, ModelLib.KIT + "Shelf_Small_Bottles.gltf", Vector3(-16.2, FLOOR_Y, -2.0 + i * 3.0), -90)
-	ModelLib.solid(self, ModelLib.KIT + "Shelf_Arch.gltf", Vector3(-13.0, FLOOR_Y, -3.4), 0)
-	ModelLib.solid(self, ModelLib.KIT + "Shelf_Simple.gltf", Vector3(-8.4, FLOOR_Y + 1.2, -3.4), 0)
+		ModelLib.solid(self, "Shelf_Small_Bottles", Vector3(-16.2, FLOOR_Y, -2.0 + i * 3.0), -90)
+	ModelLib.solid(self, "Shelf_Arch", Vector3(-13.0, FLOOR_Y, -3.4), 0)
+	ModelLib.solid(self, "Shelf_Simple", Vector3(-8.4, FLOOR_Y + 1.2, -3.4), 0)
 	# бочки
 	for bpos in [Vector3(-15.4, FLOOR_Y, 6.4), Vector3(-14.2, FLOOR_Y, 7.0), Vector3(-12.9, FLOOR_Y, 6.6),
 			Vector3(-7.4, FLOOR_Y, -2.6), Vector3(-7.2, FLOOR_Y, 6.8)]:
-		ModelLib.solid(self, ModelLib.KIT + "Barrel.gltf", bpos, randf_range(0, 90))
-	ModelLib.solid(self, ModelLib.KIT + "Barrel_Holder.gltf", Vector3(-11.4, FLOOR_Y, 7.2), 0)
-	ModelLib.solid(self, ModelLib.KIT + "Crate_Wooden.gltf", Vector3(-16.0, FLOOR_Y, 3.6), 15)
-	ModelLib.solid(self, ModelLib.KIT + "Crate_Metal.gltf", Vector3(-16.0, FLOOR_Y, 1.2), -20)
+		ModelLib.solid(self, "Barrel", bpos, randf_range(0, 90))
+	ModelLib.solid(self, "Barrel_Holder", Vector3(-11.4, FLOOR_Y, 7.2), 0)
+	ModelLib.solid(self, "Crate_Wooden", Vector3(-16.0, FLOOR_Y, 3.6), 15)
+	ModelLib.solid(self, "Crate_Metal", Vector3(-16.0, FLOOR_Y, 1.2), -20)
 	# ВИНО для завтрака — целый ящик, бери сколько унесёшь (одну)
 	for i in 5:
 		BreakableProp.make(self, "bottle", Vector3(-12.6 + i * 0.42, FLOOR_Y + 0.25, -1.4))
 	BreakableProp.make(self, "bottle", Vector3(-13.4, FLOOR_Y + 0.25, 0.4))
 	BreakableProp.make(self, "bottle", Vector3(-9.8, FLOOR_Y + 0.25, -2.8))
-	ModelLib.visual(self, ModelLib.KIT + "SmallBottles_1.gltf", Vector3(-8.4, FLOOR_Y + 1.35, -3.3))
-	ModelLib.grab(self, ModelLib.KIT + "Mug.gltf", Vector3(-10.6, FLOOR_Y + 0.25, 6.2), 0.6)
-	ModelLib.grab(self, ModelLib.KIT + "Chalice.gltf", Vector3(-11.2, FLOOR_Y + 0.25, 6.6), 0.8)
+	ModelLib.visual(self, "SmallBottles_1", Vector3(-8.4, FLOOR_Y + 1.35, -3.3))
+	ModelLib.grab(self, "Mug", Vector3(-10.6, FLOOR_Y + 0.25, 6.2), 0.6)
+	ModelLib.grab(self, "Chalice", Vector3(-11.2, FLOOR_Y + 0.25, 6.6), 0.8)
 	# табличка
 	MeshLib.label(self, "ВИННЫЙ ПОГРЕБ", Vector3(-11.5, 2.5, -3.5), 40, MeshLib.BONE)
 	_torch(Vector3(-16.6, 2.0, 5.0), -90)
@@ -141,20 +141,20 @@ func _cellar_room() -> void:
 func _ritual_room() -> void:
 	# ритуальный круг в центре
 	_circle(Vector3(11.5, FLOOR_Y + 0.02, 2.0), 2.6)
-	ModelLib.solid(self, ModelLib.KIT + "Cauldron.gltf", Vector3(11.5, FLOOR_Y, -2.2), 0)
+	ModelLib.solid(self, "Cauldron", Vector3(11.5, FLOOR_Y, -2.2), 0)
 	var brew := MeshLib.cylinder(self, 0.42, 0.06, Vector3(11.5, FLOOR_Y + 0.68, -2.2), MeshLib.ACCENT)
 	brew.material_override = MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)
 	# клетки и цепи
-	ModelLib.solid(self, ModelLib.KIT + "Cage_Small.gltf", Vector3(16.0, FLOOR_Y, 6.2), -25)
-	ModelLib.solid(self, ModelLib.KIT + "Cage_Small.gltf", Vector3(15.4, FLOOR_Y, 7.2), 40)
-	ModelLib.visual(self, ModelLib.KIT + "Chain_Coil.gltf", Vector3(14.6, FLOOR_Y, 5.0))
-	ModelLib.visual(self, ModelLib.KIT + "Rope_2.gltf", Vector3(7.4, FLOOR_Y, 6.6))
+	ModelLib.solid(self, "Cage_Small", Vector3(16.0, FLOOR_Y, 6.2), -25)
+	ModelLib.solid(self, "Cage_Small", Vector3(15.4, FLOOR_Y, 7.2), 40)
+	ModelLib.visual(self, "Chain_Coil", Vector3(14.6, FLOOR_Y, 5.0))
+	ModelLib.visual(self, "Rope_2", Vector3(7.4, FLOOR_Y, 6.6))
 	# верстак палача, наковальня, инструмент
-	ModelLib.solid(self, ModelLib.KIT + "Workbench_Drawers.gltf", Vector3(9.0, FLOOR_Y, -3.2), 0)
-	ModelLib.solid(self, ModelLib.KIT + "Anvil_Log.gltf", Vector3(14.4, FLOOR_Y, -3.0), -20)
-	ModelLib.grab(self, ModelLib.KIT + "Pickaxe_Bronze.gltf", Vector3(8.4, FLOOR_Y + 0.95, -3.2), 1.5)
-	ModelLib.solid(self, ModelLib.KIT + "WeaponStand.gltf", Vector3(16.2, FLOOR_Y, -1.0), -90)
-	ModelLib.solid(self, ModelLib.KIT + "Chest_Wood.gltf", Vector3(6.9, FLOOR_Y, -2.4), 30)
+	ModelLib.solid(self, "Workbench_Drawers", Vector3(9.0, FLOOR_Y, -3.2), 0)
+	ModelLib.solid(self, "Anvil_Log", Vector3(14.4, FLOOR_Y, -3.0), -20)
+	ModelLib.grab(self, "Pickaxe_Bronze", Vector3(8.4, FLOOR_Y + 0.95, -3.2), 1.5)
+	ModelLib.solid(self, "WeaponStand", Vector3(16.2, FLOOR_Y, -1.0), -90)
+	ModelLib.solid(self, "Chest_Wood", Vector3(6.9, FLOOR_Y, -2.4), 30)
 	# останки предшественников — намёк, что скелетов тут делают серийно
 	for i in 6:
 		var ang := i * TAU / 6.0 + 0.4
@@ -168,7 +168,7 @@ func _ritual_room() -> void:
 	_torch(Vector3(16.6, 2.0, 5.0), 90)
 	_torch(Vector3(16.6, 2.0, -1.0), 90)
 	_torch(Vector3(11.5, 2.0, -3.9), 180)
-	ModelLib.visual(self, ModelLib.KIT + "Banner_1.gltf", Vector3(9.6, 2.6, -3.85))
+	ModelLib.visual(self, "Banner_1", Vector3(9.6, 2.6, -3.85))
 
 func _circle(center: Vector3, radius: float) -> void:
 	var ring := MeshLib.cylinder(self, radius + 0.14, 0.02, center, Color(0.55, 0.06, 0.08))
@@ -186,7 +186,7 @@ func _circle(center: Vector3, radius: float) -> void:
 		line.rotation.y = -atan2(dir.z, dir.x)
 		line.material_override = MeshLib.mat(Color(0.75, 0.1, 0.12), 1.0, 0.0, Color(0.5, 0.04, 0.05))
 	for p in pts:
-		ModelLib.solid(self, ModelLib.KIT + "CandleStick.gltf", Vector3(p.x, FLOOR_Y, p.z) + (p - center).normalized() * 0.4)
+		ModelLib.solid(self, "CandleStick", Vector3(p.x, FLOOR_Y, p.z) + (p - center).normalized() * 0.4)
 	var rl := OmniLight3D.new()
 	rl.position = center + Vector3(0, 1.4, 0)
 	rl.light_color = Color(0.9, 0.15, 0.1)
@@ -195,10 +195,10 @@ func _circle(center: Vector3, radius: float) -> void:
 	add_child(rl)
 
 func _corridor() -> void:
-	ModelLib.solid(self, ModelLib.KIT + "Crate_Wooden.gltf", Vector3(-4.6, FLOOR_Y, 2.1), 10)
-	ModelLib.solid(self, ModelLib.KIT + "Barrel.gltf", Vector3(4.6, FLOOR_Y, 4.9), -15)
-	ModelLib.grab(self, ModelLib.KIT + "Bucket_Metal.gltf", Vector3(1.2, FLOOR_Y, 2.0), 2.0)
-	ModelLib.visual(self, ModelLib.KIT + "Rope_1.gltf", Vector3(-2.0, FLOOR_Y, 4.8))
+	ModelLib.solid(self, "Crate_Wooden", Vector3(-4.6, FLOOR_Y, 2.1), 10)
+	ModelLib.solid(self, "Barrel", Vector3(4.6, FLOOR_Y, 4.9), -15)
+	ModelLib.grab(self, "Bucket_Metal", Vector3(1.2, FLOOR_Y, 2.0), 2.0)
+	ModelLib.visual(self, "Rope_1", Vector3(-2.0, FLOOR_Y, 4.8))
 	_torch(Vector3(0, 2.0, 1.9), 180)
 	_torch(Vector3(-3.4, 2.0, 5.1))
 	_torch(Vector3(3.4, 2.0, 5.1))

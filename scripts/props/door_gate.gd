@@ -54,9 +54,13 @@ func _build(color: Color) -> void:
 		col.shape = shape
 		col.position = Vector3(_width * 0.5, _height * 0.5, 0)
 		_panel.add_child(col)
+		# модель ставим и ПОТОМ прижимаем её AABB к петле: у дверей хауспака
+		# пивот в разных местах, иначе полотно улетает мимо проёма
 		var nat_w := 3.48 if model_path.contains("Double") else 1.74
-		var vis := ModelLib.visual(_panel, model_path, Vector3(_width, 0, 0), 180.0)
+		var vis := ModelLib.visual(_panel, model_path, Vector3.ZERO, 180.0)
 		vis.scale = Vector3(_width / nat_w, _height / 4.19, 0.7)
+		var box := ModelLib.merged_aabb(vis)
+		vis.position -= Vector3(box.position.x, box.position.y, box.position.z + box.size.z / 2.0)
 
 func get_prompt() -> String:
 	return locked_hint if locked else prompt

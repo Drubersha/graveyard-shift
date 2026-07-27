@@ -328,6 +328,23 @@ func _physics_process(_delta: float) -> void:
 				_ok("подъём по той же лестнице работает (+%.1f м)" % climbed)
 			else:
 				_fail("подъём не работает: набрал всего %.2f м" % climbed)
+			# спуск в подвал по пандусу шахты (кухня)
+			_skel.respawn_at(_mansion.to_global(Vector3(
+				Mansion.SHAFT_W.position.x + Mansion.SHAFT_W.size.x / 2.0, 0.5, Mansion.SHAFT_W.position.y - 0.9)))
+			_wait = 30
+			_step = 32
+		32:
+			_mark = _skel.global_position
+			Input.action_press("move_back")   # шахта уходит вниз по +Z
+			_wait = 150
+			_step = 33
+		33:
+			Input.action_release("move_back")
+			var down: float = _mark.y - _skel.global_position.y
+			if down > 1.2:
+				_ok("спуск в подвал по пандусу работает (−%.1f м)" % down)
+			else:
+				_fail("в подвал не спуститься: перепад %.2f м, застрял на y=%.2f" % [down, _skel.global_position.y])
 			_finish()
 
 func _finish() -> void:

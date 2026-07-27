@@ -59,9 +59,10 @@ func _fence() -> void:
 	for sx in [-1.9, 1.9]:
 		MeshLib.solid_box(self, Vector3(0.4, 2.2, 0.4), Vector3(sx, 1.1, 2), MeshLib.STONE)
 		MeshLib.sphere(self, 0.14, Vector3(sx, 2.35, 2), MeshLib.BONE_DARK)
-	# арка с вывеской
-	var arch := MeshLib.box(self, Vector3(4.4, 0.35, 0.3), Vector3(0, 2.5, 2), MeshLib.STONE_DARK)
-	MeshLib.label(arch, "КЛАДБИЩЕ «ТИХАЯ ГАВАНЬ»", Vector3(0, 0.55, 0), 36, MeshLib.BONE)
+	# арка с вывеской — читается по E, чтобы не висела на пол-экрана
+	MeshLib.box(self, Vector3(4.4, 0.35, 0.3), Vector3(0, 2.5, 2), MeshLib.STONE_DARK)
+	SignPost.make(self, Vector3(0, 2.9, 2.0),
+		"КЛАДБИЩЕ «ТИХАЯ ГАВАНЬ»\nмест нет, но для своих найдём", "Прочитать вывеску")
 
 ## Ворота кладбища: заперты, рычаг снаружи. Низ створок сплошной (скелет не
 ## дотянется), под ними щель 0.26 — оторванная рука проползает и жмёт рычаг.
@@ -117,6 +118,24 @@ func _graves() -> void:
 	# модельные надгробия Spooky Graveyard, расставлены ровной сеткой рядами
 	const GRAVES := ["grave_01", "grave_02", "grave_03", "grave_05", "grave_06", "grave_07",
 		"grave_08", "broken_grave_01", "broken_grave_02", "broken_grave_03", "grave_02"]
+	const EPITAPHS := [
+		"ЗДЕСЬ ЛЕЖИТ ГРЕГОРИ\nговорил, что подержит стремянку",
+		"МАРТА, 1841–1898\nвсю жизнь копила. Накопила.",
+		"СЭМ «ОСТОРОЖНЫЙ»\nпроверял, заряжено ли",
+		"ЭДВАРД\nсказал: «да я быстро, тут рядом»",
+		"МИССИС ХОЛЛОУЭЙ\nдиета. Строгая. Слишком.",
+		"ЮНЫЙ ТОБИ\nхотел погладить чужую собаку",
+		"ДОКТОР ПРАЙС\nлечил всех. Кроме себя.",
+		"БАРНАБИ\nспорил с кучером о правилах",
+		"АГНЕС\nставила чайник на ночь глядя",
+		"НЕИЗВЕСТНЫЙ\nне подписал завещание. И плиту.",
+		"ФИНЕАС ГРАУТ\nизобрёл летающий сундук. Один раз.",
+		"ЛЮСИ\nчитала на ходу. Дочитала.",
+		"СТАРЫЙ ХЬЮ\nпережил трёх жён и одну ступеньку",
+		"ПОЛЛИ\nкормила ворон. Вороны помнят.",
+		"МИСТЕР ДАРРОУ\nпоследние слова: «а что тут сложного»",
+		"ГЕРТРУДА\nне верила в привидения. Теперь верит.",
+	]
 	const STEP_X := 4.0
 	const STEP_Z := 4.0
 	var occupied: Array[Vector2] = [Vector2(spawn_point.x, spawn_point.z), Vector2(-4, 6)]  # могила игрока и скамейка
@@ -135,12 +154,14 @@ func _graves() -> void:
 			var tilt := (idx % 3 - 1) * 3.0
 			ModelLib.grave(self, GRAVES[idx % GRAVES.size()], Vector3(x, 0, z), tilt)
 			MeshLib.box(self, Vector3(0.55, 0.08, 1.05), Vector3(x, 0.04, z - 0.7), MeshLib.DIRT.darkened(0.3))
+			SignPost.make(self, Vector3(x, 1.5, z - 0.35), EPITAPHS[idx % EPITAPHS.size()], "Прочитать эпитафию")
 			idx += 1
 	# открытая могила игрока
 	MeshLib.box(self, Vector3(1.0, 0.14, 2.0), Vector3(spawn_point.x, 0.02, spawn_point.z), Color(0.08, 0.06, 0.05))
 	MeshLib.box(self, Vector3(1.3, 0.3, 0.4), Vector3(spawn_point.x, 0.1, spawn_point.z + 1.3), MeshLib.DIRT.darkened(0.25))
-	var stone := ModelLib.grave(self, "grave_04", Vector3(spawn_point.x, 0, spawn_point.z - 1.2), 0)
-	MeshLib.label(stone, "ЗДЕСЬ\nБЫЛ Я", Vector3(0, 1.05, -0.3), 40, Color(0.75, 0.75, 0.8))
+	ModelLib.grave(self, "grave_04", Vector3(spawn_point.x, 0, spawn_point.z - 1.2), 0)
+	SignPost.make(self, Vector3(spawn_point.x, 1.5, spawn_point.z - 1.55),
+		"ЗДЕСЬ БЫЛ Я\nи, кажется, до сих пор есть", "Прочитать свою эпитафию")
 
 func _trees() -> void:
 	# деревья — строго между узлами сетки надгробий и снаружи ограды

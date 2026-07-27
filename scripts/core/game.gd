@@ -3,6 +3,7 @@ extends Node
 
 signal prop_broken(value: int)
 signal possession_changed(node: Node3D)
+signal item_picked(item: Node3D)   # null — предмет отпущен
 signal objective_changed(text: String)
 signal hint_shown(text: String)
 signal mission_stage_changed(stage: int)
@@ -18,8 +19,35 @@ var mess_target: int = 0  # >0 — HUD показывает срач-о-метр
 # когда скелет и рука обрабатывают один и тот же is_action_just_pressed
 var last_switch_frame := -1
 
+## Состояние мира, которое переживает перезагрузку локаций.
+var world_state := {
+	"dust_cleaned": [],      # id убранной пыли
+	"plates_done": [],       # id вымытых/разбитых тарелок
+	"pantry_open": false,    # рычаг зельеварочной уже дёрнут
+	"stove_have": [],        # ингредиенты, уже принятые плитой
+	"breakfast_ready": false,
+}
+
 func _ready() -> void:
 	_setup_input()
+
+func mark(key: String, id: int) -> void:
+	if not world_state[key].has(id):
+		world_state[key].append(id)
+
+func has_mark(key: String, id: int) -> bool:
+	return world_state[key].has(id)
+
+func stove_have() -> Array:
+	return world_state["stove_have"]
+
+func stove_add(kind: String) -> void:
+	if not world_state["stove_have"].has(kind):
+		world_state["stove_have"].append(kind)
+
+func stove_reset() -> void:
+	world_state["stove_have"] = []
+	world_state["breakfast_ready"] = true
 
 ## Передать управление узлу. Узел может (duck typing) иметь on_possess()/on_unpossess()
 ## и дочерний Node3D "CamAnchor" — за ним следует камера.

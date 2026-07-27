@@ -4,6 +4,8 @@ class_name DustPatch extends Area3D
 signal cleaned
 
 var is_clean := false
+var id := -1            # индекс для сохранения прогресса между локациями
+var _radius := 0.5
 var _visual: MeshInstance3D
 
 static func make(parent: Node, pos: Vector3, radius := 0.5) -> DustPatch:
@@ -14,6 +16,7 @@ static func make(parent: Node, pos: Vector3, radius := 0.5) -> DustPatch:
 	return d
 
 func _build(radius: float) -> void:
+	_radius = radius
 	monitoring = true
 	var col := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
@@ -29,8 +32,22 @@ func _build(radius: float) -> void:
 	MeshLib.sphere(_visual, radius * 0.13, Vector3(0.05, 0.04, radius * 0.4), Color(0.58, 0.56, 0.5), 0.6)
 	body_entered.connect(_on_body)
 
+## Метла в руках выключена из физики, поэтому её ловим вручную по расстоянию.
+func _physics_process(_delta: float) -> void:
+	if is_clean:
+		return
+	var skel := Game.player_skeleton as SkeletonPlayer
+	if skel and is_instance_valid(skel.held) and skel.held is Broom:
+		if skel.held.global_position.distance_to(global_position) < _radius + 0.75:
+			_clean()
+
 func _on_body(body: Node) -> void:
 	if is_clean or not body is Broom:
+		return
+	_clean()
+
+func _clean() -> void:
+	if is_clean:
 		return
 	is_clean = true
 	set_deferred("monitoring", false)

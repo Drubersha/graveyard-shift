@@ -103,7 +103,8 @@ static func solid_invisible(parent: Node, size: Vector3, pos: Vector3, rot := Ve
 	parent.add_child(body)
 	return body
 
-## Надпись в мире. Всегда поверх геометрии — иначе текст тонет в стенах и мебели.
+## Небольшая постоянная надпись (указатели ▼/▲). Крупные тексты — через SignPost,
+## иначе они закрывают пол-экрана.
 static func label(parent: Node, text: String, pos: Vector3, size := 48, color := Color.WHITE) -> Label3D:
 	var l := Label3D.new()
 	l.text = text
@@ -112,9 +113,7 @@ static func label(parent: Node, text: String, pos: Vector3, size := 48, color :=
 	l.position = pos
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.outline_size = 8
-	l.no_depth_test = true
-	l.fixed_size = true
-	l.render_priority = 10
-	l.outline_render_priority = 9
+	l.pixel_size = 0.0028
+	l.render_priority = 4
 	parent.add_child(l)
 	return l

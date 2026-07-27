@@ -4,6 +4,7 @@ class_name Broom extends RigidBody3D
 
 func _ready() -> void:
 	add_to_group("grabbable")
+	set_meta("item_label", "216_Broom_Straw")
 	mass = 3.0
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()

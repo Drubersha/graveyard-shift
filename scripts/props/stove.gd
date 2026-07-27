@@ -65,37 +65,66 @@ func _build_procedural() -> void:
 func get_prompt() -> String:
 	if cooked_once and not is_instance_valid(_breakfast):
 		return "Приготовить добавку"
-	return "Готовить завтрак (нужны: яйцо, мука, вино)"
+	var have := Game.stove_have()
+	if have.is_empty():
+		return "Готовить завтрак (нужны: яйцо, мука, вино)"
+	return "Плита: %s ✓ — не хватает: %s" % [_names(have), _names(_missing())]
 
-func interact(_by: Node) -> void:
-	# добавка после разбитого завтрака — бесплатно
+func _names(keys: Array) -> String:
+	var out: Array[String] = []
+	for k in keys:
+		out.append(RECIPE_NAMES[k])
+	return ", ".join(out) if not out.is_empty() else "ничего"
+
+func _missing() -> Array:
+	var have := Game.stove_have()
+	return RECIPE.filter(func(k: String) -> bool: return not have.has(k))
+
+## Ингредиенты принимаются по одному и запоминаются: можно сходить за вином
+## в погреб и вернуться — принятое не пропадёт.
+func interact(by: Node) -> void:
 	if cooked_once and not is_instance_valid(_breakfast):
 		_serve_plate()
 		Game.hint("Плита милосердна. Не разбей хотя бы эту.")
 		return
-	var found := {}
+	var candidates: Array[BreakableProp] = []
 	for body in _zone.get_overlapping_bodies():
 		var prop := body as BreakableProp
-		if prop and prop.kind in RECIPE and not found.has(prop.kind):
-			found[prop.kind] = prop
-	var missing: Array[String] = []
-	for need in RECIPE:
-		if not found.has(need):
-			missing.append(RECIPE_NAMES[need])
+		if prop:
+			candidates.append(prop)
+	var skel := by as SkeletonPlayer
+	if skel and is_instance_valid(skel.held) and skel.held is BreakableProp:
+		candidates.append(skel.held as BreakableProp)
+	var taken: Array[String] = []
+	for prop in candidates:
+		if prop.kind in RECIPE and not Game.stove_have().has(prop.kind):
+			Game.stove_add(prop.kind)
+			taken.append(RECIPE_NAMES[prop.kind])
+			if skel and skel.held == prop:
+				skel.held = null
+			prop.queue_free()
+	if not taken.is_empty():
+		_flash()
+	var missing := _missing()
 	if not missing.is_empty():
-		Game.hint("На плите не хватает: %s. Положи (или брось) сверху." % ", ".join(missing))
+		if taken.is_empty():
+			Game.hint("Плита ждёт: %s. Держи ингредиент в руках или положи сверху и жми E." % _names(missing))
+		else:
+			Game.hint("Принято: %s. Осталось: %s." % [", ".join(taken), _names(missing)])
 		return
-	for k in found:
-		(found[k] as Node).queue_free()
 	_serve_plate()
 	cooked_once = true
+	Game.stove_reset()
 	cooked.emit()
 
-func _serve_plate() -> void:
+func _flash() -> void:
 	_flame.visible = true
 	var tw := create_tween()
-	tw.tween_property(_flame, "scale", Vector3(2.5, 2.5, 2.5), 0.25)
-	tw.tween_property(_flame, "scale", Vector3.ONE, 0.25)
+	tw.tween_property(_flame, "scale", Vector3(2.0, 2.0, 2.0), 0.2)
+	tw.tween_property(_flame, "scale", Vector3.ONE, 0.2)
 	tw.tween_callback(func() -> void: _flame.visible = false)
+
+func _serve_plate() -> void:
+	_flash()
 	_breakfast = BreakableProp.make(get_parent(), "breakfast", Vector3.ZERO)
 	_breakfast.position = position + Vector3(0, top_y + 0.15, 0)

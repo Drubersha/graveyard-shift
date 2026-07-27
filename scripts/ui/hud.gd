@@ -9,6 +9,7 @@ var _cooldown: Label
 var _meter: ProgressBar
 var _meter_label: Label
 var _charge_bar: ProgressBar
+var _item_label: Label
 var _fade: ColorRect
 var _hint_timer := 0.0
 
@@ -65,6 +66,12 @@ V — вид от 1-го/3-го лица  |  Esc — мышь"
 	_set_rect(_charge_bar, 0.5, 1.0, -90, -172, 180, 10)
 	_charge_bar.visible = false
 
+	# подпись предмета в руках — левый нижний угол
+	_item_label = _make_label(root, 20, HORIZONTAL_ALIGNMENT_LEFT)
+	_item_label.modulate = Color(0.85, 0.95, 0.8)
+	_set_rect(_item_label, 0.0, 1.0, 22, -46, 520, 30)
+	_item_label.text = ""
+
 	# фейд для перехода между локациями
 	_fade = ColorRect.new()
 	_fade.color = Color(0.03, 0.02, 0.05, 0.0)
@@ -74,6 +81,11 @@ V — вид от 1-го/3-го лица  |  Esc — мышь"
 
 	Game.objective_changed.connect(func(text: String) -> void: _objective.text = text)
 	Game.hint_shown.connect(_show_hint)
+	Game.item_picked.connect(func(item: Node3D) -> void:
+		if is_instance_valid(item) and item.has_meta("item_label"):
+			_item_label.text = "В руках: " + str(item.get_meta("item_label"))
+		else:
+			_item_label.text = "")
 
 func fade_to(alpha: float, duration: float, on_done: Callable) -> void:
 	var tw := create_tween()

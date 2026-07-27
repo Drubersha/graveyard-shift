@@ -27,8 +27,8 @@ const HALL_HX := 7.0    # полуширина парадного зала
 const WING_X := 15.0    # внутренняя перегородка крыла
 
 const BACK_DOOR_X := -11.0
-const SHAFT_W := Rect2(-10.5, 1.5, 2.5, 3.5)   # спуск в подвал: кухня
-const SHAFT_E := Rect2(8.0, 1.5, 2.5, 3.5)     # спуск в подвал: зал шабаша
+const SHAFT_W := Rect2(-10.6, 1.2, 2.6, 4.6)   # спуск в подвал: кухня
+const SHAFT_E := Rect2(8.0, 1.2, 2.6, 4.6)     # спуск в подвал: зал шабаша
 const SHAFT_BOTTOM := -1.8
 
 const HS := ModelLib.HOUSE_SCALE
@@ -292,14 +292,14 @@ func _walls_f2() -> void:
 
 func _grand_hall() -> void:
 	front_door = DoorGate.make_model(self, Vector3(-1.8, FLOOR_Y, -HZ), 180.0, 3.6, 2.8,
-		ModelLib.HOUSE + "Door_Double.fbx")
+		"Door_Double")
 	front_door.locked = true
 	front_door.locked_hint = "Парадные двери заколочены. За ними город, а город — это уже другая история. (M2)"
 	# ковровая дорожка от дверей к лестницам
 	ModelLib.tex_box(self, Vector3(3.0, 0.03, 11.0), Vector3(0, FLOOR_Y + 0.015, -4.0),
 		"wood_panel.png", Color(0.55, 0.13, 0.18), 0.5)
 	# люстра под самым потолком атриума — иначе висит перед лицом на балконе
-	var chandelier := ModelLib.visual(self, ModelLib.KIT + "Chandelier.gltf", Vector3(0, CEIL - 0.75, -2.0), 0.0, 1.1)
+	var chandelier := ModelLib.visual(self, "Chandelier", Vector3(0, CEIL - 0.75, -2.0), 0.0, 1.1)
 	MeshLib.cylinder(chandelier, 0.025, 0.7, Vector3(0, 0.7, 0), MeshLib.METAL)
 	# колонны вдоль зала — строго между проёмами крыльев (z 5..6.8 и -6.8..-5)
 	for cz: float in [-8.6, -2.0, 2.0, 8.6]:
@@ -307,20 +307,20 @@ func _grand_hall() -> void:
 			ModelLib.tex_solid_box(self, Vector3(0.55, H1, 0.55), Vector3(cx, FLOOR_Y + H1 / 2.0, cz),
 				"stone_light.png", Color(0.7, 0.72, 0.8), 0.4)
 	# баннеры и знамёна на торцевой стене
-	ModelLib.visual(self, ModelLib.KIT + "Banner_1.gltf", Vector3(-3.6, 4.6, -HZ + 0.35))
-	ModelLib.visual(self, ModelLib.KIT + "Banner_2.gltf", Vector3(3.6, 4.6, -HZ + 0.35))
+	ModelLib.visual(self, "Banner_1", Vector3(-3.6, 4.6, -HZ + 0.35))
+	ModelLib.visual(self, "Banner_2", Vector3(3.6, 4.6, -HZ + 0.35))
 	ModelLib.gothic_ornament(self, 1.6, Vector3(0, 5.2, -HZ + 0.3), 0, 2)
 	# мебель — вплотную к задней стене зала, вне створов проёмов и лестниц
-	ModelLib.solid(self, ModelLib.KIT + "Bench.gltf", Vector3(-4.6, FLOOR_Y, 9.3), 180)
-	ModelLib.solid(self, ModelLib.KIT + "Bench.gltf", Vector3(4.6, FLOOR_Y, 9.3), 180)
-	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_1.fbx", Vector3(-6.4, FLOOR_Y, 9.3), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_3.fbx", Vector3(6.4, FLOOR_Y, 9.3), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_Round.fbx", Vector3(0, FLOOR_Y + 0.02, 8.0), 0, HS * 1.4)
+	ModelLib.solid(self, "Bench", Vector3(-4.6, FLOOR_Y, 9.3), 180)
+	ModelLib.solid(self, "Bench", Vector3(4.6, FLOOR_Y, 9.3), 180)
+	ModelLib.visual(self, "Houseplant_1", Vector3(-6.4, FLOOR_Y, 9.3), 0, HS)
+	ModelLib.visual(self, "Houseplant_3", Vector3(6.4, FLOOR_Y, 9.3), 0, HS)
+	ModelLib.visual(self, "Carpet_Round", Vector3(0, FLOOR_Y + 0.02, 8.0), 0, HS * 1.4)
 	_candle_stand_pair(Vector3(-6.4, FLOOR_Y, -0.6), Vector3(6.4, FLOOR_Y, -0.6))
 
 func _candle_stand_pair(a: Vector3, b: Vector3) -> void:
-	ModelLib.solid(self, ModelLib.KIT + "CandleStick_Stand.gltf", a)
-	ModelLib.solid(self, ModelLib.KIT + "CandleStick_Stand.gltf", b)
+	ModelLib.solid(self, "CandleStick_Stand", a)
+	ModelLib.solid(self, "CandleStick_Stand", b)
 
 # ================================================================ запад, этаж 1
 
@@ -329,123 +329,137 @@ func _kitchen() -> void:
 	# x=-15 (z 4..5.8), задняя дверь (x -11.9..-10.1), спуск в подвал x -10.5..-8, z 1.5..5.
 	# Рабочий треугольник стоит единым блоком у ГЛУХОЙ части задней стены (левее двери).
 	fridge = Fridge.new()
-	fridge.model_path = ModelLib.HOUSE + "Kitchen_Fridge.fbx"
+	fridge.model_path = "Kitchen_Fridge"
 	fridge.position = Vector3(-14.3, FLOOR_Y, 9.25)
 	add_child(fridge)
 	stove = Stove.new()
-	stove.model_path = ModelLib.HOUSE + "Kitchen_Oven_Large.fbx"
+	stove.model_path = "Kitchen_Oven_Large"
 	stove.position = Vector3(-13.3, FLOOR_Y, 9.3)
 	add_child(stove)
 	sink = SinkCounter.new()
-	sink.model_path = ModelLib.HOUSE + "Kitchen_Sink.fbx"
+	sink.model_path = "Kitchen_Sink"
 	sink.position = Vector3(-12.4, FLOOR_Y, 9.3)
 	add_child(sink)
 	# тумбы и шкафчики — по бокам блока, всё у стен, столов и стульев на кухне нет
-	ModelLib.solid(self, ModelLib.HOUSE + "Kitchen_2Drawers.fbx", Vector3(-9.6, FLOOR_Y, 9.3), 180, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Kitchen_1Drawers.fbx", Vector3(-8.6, FLOOR_Y, 9.3), 180, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Kitchen_Cabinet1.fbx", Vector3(-13.3, FLOOR_Y + 1.9, 9.5), 180, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Kitchen_CabinetSmall.fbx", Vector3(-9.0, FLOOR_Y + 1.9, 9.5), 180, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Kitchen_2Drawers.fbx", Vector3(-14.6, FLOOR_Y, 7.2), 90, HS)
-	# пыль по всей кухне, обходя лестничный проём и дверные створы
-	for dpos in [Vector3(-13.2, FLOOR_Y, 2.2), Vector3(-12.6, FLOOR_Y, 7.9), Vector3(-8.6, FLOOR_Y, 6.6),
-			Vector3(-13.0, FLOOR_Y, 0.9), Vector3(-14.0, FLOOR_Y, 6.2), Vector3(-11.6, FLOOR_Y, 8.4)]:
-		dust_list.append(DustPatch.make(self, dpos, 0.55))
-	ModelLib.solid(self, ModelLib.HOUSE + "Trashcan_Small1.fbx", Vector3(-7.7, FLOOR_Y, 8.9), 0, HS)
+	ModelLib.solid(self, "Kitchen_2Drawers", Vector3(-9.6, FLOOR_Y, 9.3), 180, HS)
+	ModelLib.solid(self, "Kitchen_1Drawers", Vector3(-8.6, FLOOR_Y, 9.3), 180, HS)
+	ModelLib.solid(self, "Kitchen_Cabinet1", Vector3(-13.3, FLOOR_Y + 1.9, 9.5), 180, HS)
+	ModelLib.solid(self, "Kitchen_CabinetSmall", Vector3(-9.0, FLOOR_Y + 1.9, 9.5), 180, HS)
+	ModelLib.solid(self, "Kitchen_2Drawers", Vector3(-14.6, FLOOR_Y, 7.2), 90, HS)
+	# пыль по всей кухне, обходя лестничный проём и дверные створы;
+	# уже убранная (Game.world_state) не возвращается после похода в подвал
+	var dust_spots := [Vector3(-13.2, FLOOR_Y, 2.2), Vector3(-12.6, FLOOR_Y, 7.9), Vector3(-8.6, FLOOR_Y, 6.6),
+		Vector3(-13.0, FLOOR_Y, 0.9), Vector3(-14.0, FLOOR_Y, 6.2), Vector3(-11.6, FLOOR_Y, 8.4)]
+	for i in dust_spots.size():
+		if Game.has_mark("dust_cleaned", i):
+			continue
+		var d := DustPatch.make(self, dust_spots[i], 0.55)
+		d.id = i
+		dust_list.append(d)
+	ModelLib.solid(self, "Trashcan_Small1", Vector3(-7.7, FLOOR_Y, 8.9), 0, HS)
 	_lamp(Vector3(-11.0, 3.0, 6.0), Color(1.0, 0.8, 0.55), 10.0, 1.1)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Ceiling1.fbx", Vector3(-11.0, SLAB_BOT - 0.05, 6.0), 0, HS)
+	ModelLib.visual(self, "Light_Ceiling1", Vector3(-11.0, SLAB_BOT - 0.05, 6.0), 0, HS)
 
 func _dining() -> void:
 	# x -22..-15, z 0..10; проём в стене x=-15 при z 4..5.8
-	ModelLib.solid(self, ModelLib.KIT + "Table_Large.gltf", Vector3(-18.5, FLOOR_Y, 7.4), 0)
+	ModelLib.solid(self, "Table_Large", Vector3(-18.5, FLOOR_Y, 7.4), 0)
 	for i in 3:
-		ModelLib.solid(self, ModelLib.HOUSE + "Chair_1.fbx", Vector3(-19.7 + i * 1.2, FLOOR_Y, 8.5), 180, HS)
-		ModelLib.solid(self, ModelLib.HOUSE + "Chair_1.fbx", Vector3(-19.7 + i * 1.2, FLOOR_Y, 6.3), 0, HS)
+		ModelLib.solid(self, "Chair_1", Vector3(-19.7 + i * 1.2, FLOOR_Y, 8.5), 180, HS)
+		ModelLib.solid(self, "Chair_1", Vector3(-19.7 + i * 1.2, FLOOR_Y, 6.3), 0, HS)
 	# грязная посуда после вчерашнего — ровно две, их и моем
-	for ppos in [Vector3(-19.3, FLOOR_Y + 0.85, 7.8), Vector3(-17.7, FLOOR_Y + 0.85, 7.1)]:
-		dirty_plates.append(BreakableProp.make(self, "plate_dirty", ppos))
+	var plate_spots := [Vector3(-19.3, FLOOR_Y + 0.85, 7.8), Vector3(-17.7, FLOOR_Y + 0.85, 7.1)]
+	for i in plate_spots.size():
+		if Game.has_mark("plates_done", i):
+			continue
+		var p := BreakableProp.make(self, "plate_dirty", plate_spots[i])
+		p.id = i
+		dirty_plates.append(p)
 	# место, куда чистые тарелки просятся обратно
-	ModelLib.visual(self, ModelLib.HOUSE + "Plate_1.fbx", Vector3(-20.2, FLOOR_Y + 0.78, 7.2), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Plate_2.fbx", Vector3(-16.9, FLOOR_Y + 0.78, 7.9), 0, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Kitchen_CabinetSmall.fbx", Vector3(-21.0, FLOOR_Y, 2.0), 90, HS)
-	ModelLib.solid(self, ModelLib.FURN + "Closet.fbx", Vector3(-16.2, FLOOR_Y, 1.4), -90, FS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Curtains_Double.fbx", Vector3(-18.5, FLOOR_Y, 9.5), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_2.fbx", Vector3(-18.5, FLOOR_Y + 0.02, 7.4), 0, HS * 1.3)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Chandelier.fbx", Vector3(-18.5, SLAB_BOT - 0.05, 7.4), 0, HS)
+	ModelLib.visual(self, "Plate_1", Vector3(-20.2, FLOOR_Y + 0.78, 7.2), 0, HS)
+	ModelLib.visual(self, "Plate_2", Vector3(-16.9, FLOOR_Y + 0.78, 7.9), 0, HS)
+	ModelLib.solid(self, "Kitchen_CabinetSmall", Vector3(-21.0, FLOOR_Y, 2.0), 90, HS)
+	ModelLib.solid(self, "Closet", Vector3(-16.2, FLOOR_Y, 1.4), -90, FS)
+	ModelLib.visual(self, "Curtains_Double", Vector3(-18.5, FLOOR_Y, 9.5), 0, HS)
+	ModelLib.visual(self, "Carpet_2", Vector3(-18.5, FLOOR_Y + 0.02, 7.4), 0, HS * 1.3)
+	ModelLib.visual(self, "Light_Chandelier", Vector3(-18.5, SLAB_BOT - 0.05, 7.4), 0, HS)
 	_lamp(Vector3(-18.5, 2.9, 6.0), Color(1.0, 0.75, 0.5), 9.0, 0.9)
 
 func _sewing() -> void:
 	# x -22..-15, z -10..0; проём в стене x=-15 при z -5.8..-4
-	ModelLib.solid(self, ModelLib.KIT + "Dummy.gltf", Vector3(-17.4, FLOOR_Y, -2.6), 30)
-	ModelLib.solid(self, ModelLib.KIT + "Workbench_Drawers.gltf", Vector3(-19.6, FLOOR_Y, -8.6), 0)
-	ModelLib.solid(self, ModelLib.KIT + "Workbench.gltf", Vector3(-16.6, FLOOR_Y, -8.6), 0)
-	ModelLib.solid(self, ModelLib.FURN + "Closet2.fbx", Vector3(-21.0, FLOOR_Y, -5.0), 90, FS)
-	ModelLib.solid(self, ModelLib.FURN + "Stool.fbx", Vector3(-19.2, FLOOR_Y, -7.0), 0, FS)
-	ModelLib.visual(self, ModelLib.FURN + "Lamp.fbx", Vector3(-16.4, FLOOR_Y, -1.2), 0, FS)
+	ModelLib.solid(self, "Dummy", Vector3(-17.4, FLOOR_Y, -2.6), 30)
+	ModelLib.solid(self, "Workbench_Drawers", Vector3(-19.6, FLOOR_Y, -8.6), 0)
+	ModelLib.solid(self, "Workbench", Vector3(-16.6, FLOOR_Y, -8.6), 0)
+	ModelLib.solid(self, "Closet2", Vector3(-21.0, FLOOR_Y, -5.0), 90, FS)
+	ModelLib.solid(self, "Stool", Vector3(-19.2, FLOOR_Y, -7.0), 0, FS)
+	ModelLib.visual(self, "Lamp", Vector3(-16.4, FLOOR_Y, -1.2), 0, FS)
 	for i in 3:
 		ModelLib.tex_box(self, Vector3(0.28, 1.5, 0.28), Vector3(-21.0 + i * 0.4, FLOOR_Y + 0.75, -1.4),
 			"wood_panel.png", [Color(0.6, 0.2, 0.3), Color(0.3, 0.2, 0.5), Color(0.2, 0.4, 0.3)][i], 0.9,
 			Vector3(0, 0, randf_range(-7, 7)))
-	ModelLib.visual(self, ModelLib.KIT + "Peg_Rack.gltf", Vector3(-18.5, 1.9, -9.7))
-	ModelLib.grab(self, ModelLib.KIT + "Pouch_Large.gltf", Vector3(-16.8, FLOOR_Y + 0.95, -8.4), 1.0)
+	ModelLib.visual(self, "Peg_Rack", Vector3(-18.5, 1.9, -9.7))
+	ModelLib.grab(self, "Pouch_Large", Vector3(-16.8, FLOOR_Y + 0.95, -8.4), 1.0)
 	_lamp(Vector3(-18.5, 2.9, -5.0), Color(0.95, 0.8, 0.6), 9.0, 0.85)
 
 func _toilet_w1() -> void:
-	ModelLib.solid(self, ModelLib.HOUSE + "Bathroom_Toilet.fbx", Vector3(-14.2, FLOOR_Y, -9.2), 90, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bathroom_Sink.fbx", Vector3(-12.2, FLOOR_Y, -9.4), 180, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Bathroom_Mirror1.fbx", Vector3(-12.2, FLOOR_Y + 1.5, -9.75), 180, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Bathroom_ToiletPaper.fbx", Vector3(-14.5, FLOOR_Y + 0.9, -8.4), 90, HS)
+	ModelLib.solid(self, "Bathroom_Toilet", Vector3(-14.2, FLOOR_Y, -9.2), 90, HS)
+	ModelLib.solid(self, "Bathroom_Sink", Vector3(-12.2, FLOOR_Y, -9.4), 180, HS)
+	ModelLib.visual(self, "Bathroom_Mirror1", Vector3(-12.2, FLOOR_Y + 1.5, -9.75), 180, HS)
+	ModelLib.visual(self, "Bathroom_ToiletPaper", Vector3(-14.5, FLOOR_Y + 0.9, -8.4), 90, HS)
 	_lamp(Vector3(-13.2, 2.8, -8.5), Color(0.85, 0.9, 0.95), 5.0, 0.7)
 
 func _corridor_w1() -> void:
 	# x -15..-7, z -10..0 (минус туалет). Проёмы: x=-7 (z -6.8..-5), z=0 (x -13..-11.2), x=-15 (z -5.8..-4)
-	ModelLib.solid(self, ModelLib.HOUSE + "Drawer_1.fbx", Vector3(-7.7, FLOOR_Y, -2.2), -90, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_5.fbx", Vector3(-7.7, FLOOR_Y, -8.6), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_1.fbx", Vector3(-10.0, FLOOR_Y + 0.02, -3.0), 90, HS)
-	ModelLib.visual(self, ModelLib.KIT + "Lantern_Wall.gltf", Vector3(-9.6, 2.1, -0.2))
+	ModelLib.solid(self, "Drawer_1", Vector3(-7.7, FLOOR_Y, -2.2), -90, HS)
+	ModelLib.visual(self, "Houseplant_5", Vector3(-7.7, FLOOR_Y, -8.6), 0, HS)
+	ModelLib.visual(self, "Carpet_1", Vector3(-10.0, FLOOR_Y + 0.02, -3.0), 90, HS)
+	ModelLib.visual(self, "Lantern_Wall", Vector3(-9.6, 2.1, -0.2))
 	_lamp(Vector3(-10.5, 2.8, -4.0), Color(0.9, 0.8, 0.65), 8.0, 0.75)
 
 # ================================================================ восток, этаж 1
 
 func _sabbath() -> void:
 	# x 7..15, z 0..10; спуск в подвал x 8..10.5, z 1.5..5
-	ModelLib.solid(self, ModelLib.HOUSE + "Table_RoundLarge.fbx", Vector3(12.4, FLOOR_Y, 7.4), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_Round.fbx", Vector3(12.4, FLOOR_Y + 0.02, 7.4), 0, HS * 1.8)
-	var seats := [ModelLib.KIT + "Stool.gltf", ModelLib.HOUSE + "Stool.fbx", ModelLib.KIT + "Bench.gltf",
-		ModelLib.HOUSE + "Chair_3.fbx", ModelLib.KIT + "Stool.gltf", ModelLib.HOUSE + "Chair_4.fbx"]
+	ModelLib.solid(self, "Table_RoundLarge", Vector3(12.4, FLOOR_Y, 7.4), 0, HS)
+	ModelLib.visual(self, "Carpet_Round", Vector3(12.4, FLOOR_Y + 0.02, 7.4), 0, HS * 1.8)
+	# по кругу: часть сидений из megakit (масштаб 1.0), часть из хауспака (HS)
+	var seats := [["Stool_Kit", 1.0], ["Chair_1", HS], ["Bench", 1.0],
+		["Chair_3", HS], ["Stool_Kit", 1.0], ["Chair_4", HS]]
 	for i in seats.size():
 		var ang := i * TAU / seats.size()
 		var sp := Vector3(12.4 + cos(ang) * 2.2, FLOOR_Y, 7.4 + sin(ang) * 2.2)
-		var sc: float = 1.0 if (seats[i] as String).begins_with(ModelLib.KIT) else HS
-		ModelLib.solid(self, seats[i], sp, rad_to_deg(-ang) + 90, sc)
-	ModelLib.solid(self, ModelLib.KIT + "CandleStick_Triple.gltf", Vector3(12.4, FLOOR_Y + 0.85, 7.4))
+		ModelLib.solid(self, seats[i][0] as String, sp, rad_to_deg(-ang) + 90, seats[i][1] as float)
+	ModelLib.solid(self, "CandleStick_Triple", Vector3(12.4, FLOOR_Y + 0.85, 7.4))
 	for tx: float in [7.4, 14.6]:
-		ModelLib.visual(self, ModelLib.KIT + "Torch_Metal.gltf", Vector3(tx, 2.0, 8.6), 90 if tx < 10 else -90)
-	ModelLib.visual(self, ModelLib.KIT + "Banner_2.gltf", Vector3(12.4, 2.9, 9.6))
-	ModelLib.solid(self, ModelLib.KIT + "Chest_Wood.gltf", Vector3(14.2, FLOOR_Y, 1.0), -35)
+		ModelLib.visual(self, "Torch_Metal", Vector3(tx, 2.0, 8.6), 90 if tx < 10 else -90)
+	ModelLib.visual(self, "Banner_2", Vector3(12.4, 2.9, 9.6))
+	ModelLib.solid(self, "Chest_Wood", Vector3(14.2, FLOOR_Y, 1.0), -35)
 	_lamp(Vector3(12.4, 3.0, 7.0), Color(1.0, 0.7, 0.45), 10.0, 1.0)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Ceiling3.fbx", Vector3(12.4, SLAB_BOT - 0.05, 7.4), 0, HS)
+	ModelLib.visual(self, "Light_Ceiling3", Vector3(12.4, SLAB_BOT - 0.05, 7.4), 0, HS)
 
 func _amulet() -> void:
 	# x 15..22, z 0..10; проём в стене x=15 при z 4..5.8
-	ModelLib.solid(self, ModelLib.KIT + "Workbench.gltf", Vector3(18.5, FLOOR_Y, 9.2), 0)
-	ModelLib.visual(self, ModelLib.KIT + "Chalice.gltf", Vector3(18.1, FLOOR_Y + 0.9, 9.2))
-	ModelLib.grab(self, ModelLib.KIT + "Key_Gold.gltf", Vector3(18.9, FLOOR_Y + 0.9, 9.1), 0.5)
-	ModelLib.solid(self, ModelLib.KIT + "Shelf_Arch.gltf", Vector3(21.0, FLOOR_Y, 7.6), -90)
-	ModelLib.visual(self, ModelLib.KIT + "Scroll_1.gltf", Vector3(21.0, FLOOR_Y + 1.35, 7.6))
-	ModelLib.visual(self, ModelLib.KIT + "Coin_Pile.gltf", Vector3(20.4, FLOOR_Y, 2.4))
-	ModelLib.visual(self, ModelLib.KIT + "Coin_Pile_2.gltf", Vector3(20.9, FLOOR_Y, 2.9))
-	ModelLib.grab(self, ModelLib.KIT + "Cage_Small.gltf", Vector3(16.4, FLOOR_Y, 1.4), 3.0)
-	ModelLib.solid(self, ModelLib.KIT + "Anvil.gltf", Vector3(16.6, FLOOR_Y, 8.8), 20)
-	ModelLib.visual(self, ModelLib.KIT + "Lantern_Wall.gltf", Vector3(18.5, 2.1, 9.7))
-	ModelLib.solid(self, ModelLib.KIT + "CandleStick_Stand.gltf", Vector3(21.2, FLOOR_Y, 1.2))
+	ModelLib.solid(self, "Workbench", Vector3(18.5, FLOOR_Y, 9.2), 0)
+	ModelLib.visual(self, "Chalice", Vector3(18.1, FLOOR_Y + 0.9, 9.2))
+	ModelLib.grab(self, "Key_Gold", Vector3(18.9, FLOOR_Y + 0.9, 9.1), 0.5)
+	ModelLib.solid(self, "Shelf_Arch", Vector3(21.0, FLOOR_Y, 7.6), -90)
+	ModelLib.visual(self, "Scroll_1", Vector3(21.0, FLOOR_Y + 1.35, 7.6))
+	ModelLib.visual(self, "Coin_Pile", Vector3(20.4, FLOOR_Y, 2.4))
+	ModelLib.visual(self, "Coin_Pile_2", Vector3(20.9, FLOOR_Y, 2.9))
+	ModelLib.grab(self, "Cage_Small", Vector3(16.4, FLOOR_Y, 1.4), 3.0)
+	ModelLib.solid(self, "Anvil", Vector3(16.6, FLOOR_Y, 8.8), 20)
+	ModelLib.visual(self, "Lantern_Wall", Vector3(18.5, 2.1, 9.7))
+	ModelLib.solid(self, "CandleStick_Stand", Vector3(21.2, FLOOR_Y, 1.2))
 	_lamp(Vector3(18.5, 2.9, 6.5), Color(1.0, 0.8, 0.55), 9.0, 0.9)
 
 func _potion_room() -> void:
 	# x 15..22, z -10..0 — ЗАПЕРТА. Дверь x=15 (z -5.8..-4), вентиляция (z -2.4..-1.6, h 0.55)
 	pantry_door = DoorGate.make_model(self, Vector3(WING_X, FLOOR_Y, -5.8), -90.0, 1.8, 2.35,
-		ModelLib.HOUSE + "Door_5.fbx")
+		"Door_5")
 	pantry_door.locked = true
 	pantry_door.locked_hint = "Зельеварочная заперта изнутри. В стене у пола — вентиляция, рука пролезет."
+	if Game.world_state["pantry_open"]:
+		pantry_door.unlock()
+		pantry_door.call_deferred("open")   # рычаг уже дёрнут — дверь так и осталась открытой
 	pantry_lever = Lever.new()
 	pantry_lever.position = Vector3(WING_X + 0.45, FLOOR_Y + 0.35, -4.6)
 	pantry_lever.rotation_degrees = Vector3(0, 90, 0)
@@ -457,34 +471,34 @@ func _potion_room() -> void:
 	for i in 3:
 		MeshLib.box(self, Vector3(0.05, 0.42, 0.05), Vector3(WING_X - 0.2, FLOOR_Y + 0.26, -2.3 + i * 0.22),
 			MeshLib.METAL, Vector3(14, 0, 0))
-	ModelLib.solid(self, ModelLib.KIT + "Cauldron.gltf", Vector3(18.6, FLOOR_Y, -5.0), 0)
+	ModelLib.solid(self, "Cauldron", Vector3(18.6, FLOOR_Y, -5.0), 0)
 	var brew := MeshLib.cylinder(self, 0.42, 0.06, Vector3(18.6, FLOOR_Y + 0.68, -5.0), MeshLib.ACCENT)
 	brew.material_override = MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)
-	ModelLib.solid(self, ModelLib.KIT + "Shelf_Small_Bottles.gltf", Vector3(21.2, FLOOR_Y, -7.6), -90)
-	ModelLib.solid(self, ModelLib.KIT + "Shelf_Simple.gltf", Vector3(21.2, FLOOR_Y + 1.3, -3.0), -90)
+	ModelLib.solid(self, "Shelf_Small_Bottles", Vector3(21.2, FLOOR_Y, -7.6), -90)
+	ModelLib.solid(self, "Shelf_Simple", Vector3(21.2, FLOOR_Y + 1.3, -3.0), -90)
 	for pdata in [["Potion_1.gltf", Vector3(16.4, FLOOR_Y, -8.6)], ["Potion_2.gltf", Vector3(16.9, FLOOR_Y, -8.9)],
 			["Potion_4.gltf", Vector3(21.0, FLOOR_Y + 1.45, -3.0)]]:
-		ModelLib.grab(self, ModelLib.KIT + (pdata[0] as String), pdata[1] as Vector3, 1.0)
-	ModelLib.solid(self, ModelLib.KIT + "Barrel.gltf", Vector3(16.2, FLOOR_Y, -1.4), 0)
-	ModelLib.grab(self, ModelLib.KIT + "Bucket_Wooden_1.gltf", Vector3(20.4, FLOOR_Y, -9.2), 2.0)
-	ModelLib.visual(self, ModelLib.KIT + "SmallBottles_1.gltf", Vector3(21.1, FLOOR_Y + 1.05, -7.2))
+		ModelLib.grab(self, pdata[0] as String, pdata[1] as Vector3, 1.0)
+	ModelLib.solid(self, "Barrel", Vector3(16.2, FLOOR_Y, -1.4), 0)
+	ModelLib.grab(self, "Bucket_Wooden_1", Vector3(20.4, FLOOR_Y, -9.2), 2.0)
+	ModelLib.visual(self, "SmallBottles_1", Vector3(21.1, FLOOR_Y + 1.05, -7.2))
 	# МУКА — цель рейда
 	BreakableProp.make(self, "flour", Vector3(18.2, FLOOR_Y + 0.3, -2.6))
 	BreakableProp.make(self, "flour", Vector3(19.6, FLOOR_Y + 0.3, -7.4))
 	_lamp(Vector3(18.5, 2.6, -5.0), MeshLib.ACCENT, 8.0, 0.9)
 
 func _toilet_e1() -> void:
-	ModelLib.solid(self, ModelLib.HOUSE + "Bathroom_Toilet2.fbx", Vector3(14.2, FLOOR_Y, -9.2), -90, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bathroom_WashingMachine.fbx", Vector3(12.1, FLOOR_Y, -9.4), 180, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Bathroom_Mirror2.fbx", Vector3(14.75, FLOOR_Y + 1.5, -8.4), -90, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Bathroom_ToiletPaperPile.fbx", Vector3(11.9, FLOOR_Y, -7.6), 0, HS)
+	ModelLib.solid(self, "Bathroom_Toilet2", Vector3(14.2, FLOOR_Y, -9.2), -90, HS)
+	ModelLib.solid(self, "Bathroom_WashingMachine", Vector3(12.1, FLOOR_Y, -9.4), 180, HS)
+	ModelLib.visual(self, "Bathroom_Mirror2", Vector3(14.75, FLOOR_Y + 1.5, -8.4), -90, HS)
+	ModelLib.visual(self, "Bathroom_ToiletPaperPile", Vector3(11.9, FLOOR_Y, -7.6), 0, HS)
 	_lamp(Vector3(13.2, 2.8, -8.5), Color(0.85, 0.9, 0.95), 5.0, 0.7)
 
 func _corridor_e1() -> void:
-	ModelLib.solid(self, ModelLib.HOUSE + "Drawer_2.fbx", Vector3(7.7, FLOOR_Y, -2.2), 90, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_7.fbx", Vector3(7.7, FLOOR_Y, -8.6), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_2.fbx", Vector3(10.0, FLOOR_Y + 0.02, -3.0), 90, HS)
-	ModelLib.visual(self, ModelLib.KIT + "Lantern_Wall.gltf", Vector3(9.6, 2.1, -0.2))
+	ModelLib.solid(self, "Drawer_2", Vector3(7.7, FLOOR_Y, -2.2), 90, HS)
+	ModelLib.visual(self, "Houseplant_7", Vector3(7.7, FLOOR_Y, -8.6), 0, HS)
+	ModelLib.visual(self, "Carpet_2", Vector3(10.0, FLOOR_Y + 0.02, -3.0), 90, HS)
+	ModelLib.visual(self, "Lantern_Wall", Vector3(9.6, 2.1, -0.2))
 	_lamp(Vector3(10.5, 2.8, -4.0), Color(0.9, 0.8, 0.65), 8.0, 0.75)
 
 # ================================================================ запад, этаж 2
@@ -492,79 +506,79 @@ func _corridor_e1() -> void:
 func _living_room() -> void:
 	# x -15..-7, z 4..10. Вход с балкона (x=-7, z 6..7.8), в коридор (z=4, x -11..-9.2)
 	# спинкой к северной стене, сиденьем в комнату
-	ModelLib.solid(self, ModelLib.HOUSE + "Couch_Large1.fbx", Vector3(-12.6, F2, 9.1), 0, HS)
+	ModelLib.solid(self, "Couch_Large1", Vector3(-12.6, F2, 9.1), 0, HS)
 	# сидит на подушках лицом в комнату, а не за спинкой
 	couch_marker = Node3D.new()
 	couch_marker.position = Vector3(-12.6, F2 + 0.42, 8.55)
 	couch_marker.rotation_degrees = Vector3(0, 0, 0)
 	add_child(couch_marker)
 	serve_zone = ServeZone.make(self, Vector3(-12.6, F2, 7.3))
-	var fp := ModelLib.solid(self, ModelLib.HOUSE + "Fireplace.fbx", Vector3(-12.6, F2, 4.6), 0, HS)
+	var fp := ModelLib.solid(self, "Fireplace", Vector3(-12.6, F2, 4.6), 0, HS)
 	var fire := MeshLib.box(fp, Vector3(0.8, 0.4, 0.2), Vector3(0, 0.35, -0.1), Color(1.0, 0.45, 0.1))
 	fire.material_override = MeshLib.mat(Color(1.0, 0.45, 0.1), 1.0, 0.0, Color(1.0, 0.5, 0.1))
-	ModelLib.solid(self, ModelLib.FURN + "CoffeeTable.fbx", Vector3(-12.6, F2, 6.6), 0, FS)
+	ModelLib.solid(self, "CoffeeTable", Vector3(-12.6, F2, 6.6), 0, FS)
 	BreakableProp.make(self, "bottle", Vector3(-12.8, F2 + 0.62, 6.5))
 	BreakableProp.make(self, "bottle", Vector3(-12.4, F2 + 0.62, 6.75))
-	ModelLib.solid(self, ModelLib.FURN + "SofaDouble.fbx", Vector3(-8.4, F2, 8.4), -90, FS)
-	ModelLib.solid(self, ModelLib.FURN + "SofaLong.fbx", Vector3(-14.2, F2, 7.0), 90, FS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Floor1.fbx", Vector3(-14.3, F2, 9.4), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_1.fbx", Vector3(-12.6, F2 + 0.02, 7.2), 0, HS * 1.3)
-	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_8.fbx", Vector3(-7.8, F2, 9.5), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Ceiling5.fbx", Vector3(-12.6, CEIL - 0.05, 7.4), 0, HS)
+	ModelLib.solid(self, "SofaDouble", Vector3(-8.4, F2, 8.4), -90, FS)
+	ModelLib.solid(self, "SofaLong", Vector3(-14.2, F2, 7.0), 90, FS)
+	ModelLib.visual(self, "Light_Floor1", Vector3(-14.3, F2, 9.4), 0, HS)
+	ModelLib.visual(self, "Carpet_1", Vector3(-12.6, F2 + 0.02, 7.2), 0, HS * 1.3)
+	ModelLib.visual(self, "Houseplant_8", Vector3(-7.8, F2, 9.5), 0, HS)
+	ModelLib.visual(self, "Light_Ceiling5", Vector3(-12.6, CEIL - 0.05, 7.4), 0, HS)
 	_lamp(Vector3(-12.6, F2 + 2.4, 7.4), Color(1.0, 0.75, 0.5), 9.0, 1.0)
 	_lamp(Vector3(-12.6, F2 + 0.9, 5.2), Color(1.0, 0.5, 0.15), 4.5, 1.3)
 
 func _bedrooms_west() -> void:
 	# спальня 1: x -22..-15, z 4..10 (вход z 5.2..7)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bed_King.fbx", Vector3(-19.4, F2, 8.4), 180, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "NightStand_1.fbx", Vector3(-21.0, F2, 9.3), 0, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "NightStand_2.fbx", Vector3(-17.6, F2, 9.3), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Stand1.fbx", Vector3(-21.0, F2 + 0.55, 9.3), 0, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Drawer_3.fbx", Vector3(-16.0, F2, 5.0), -90, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_Round.fbx", Vector3(-19.4, F2 + 0.02, 5.8), 0, HS)
+	ModelLib.solid(self, "Bed_King", Vector3(-19.4, F2, 8.4), 180, HS)
+	ModelLib.solid(self, "NightStand_1", Vector3(-21.0, F2, 9.3), 0, HS)
+	ModelLib.solid(self, "NightStand_2", Vector3(-17.6, F2, 9.3), 0, HS)
+	ModelLib.visual(self, "Light_Stand1", Vector3(-21.0, F2 + 0.55, 9.3), 0, HS)
+	ModelLib.solid(self, "Drawer_3", Vector3(-16.0, F2, 5.0), -90, HS)
+	ModelLib.visual(self, "Carpet_Round", Vector3(-19.4, F2 + 0.02, 5.8), 0, HS)
 	_lamp(Vector3(-19.0, F2 + 2.4, 7.4), Color(0.95, 0.75, 0.55), 8.0, 0.75)
 	# спальня 2: x -22..-15, z -2..4 (вход z 0..1.8)
-	ModelLib.solid(self, ModelLib.FURN + "BedKing.fbx", Vector3(-19.6, F2, -0.4), 90, FS)
-	ModelLib.solid(self, ModelLib.FURN + "Closet2.fbx", Vector3(-16.2, F2, 3.0), 180, FS)
-	ModelLib.solid(self, ModelLib.FURN + "CoffeeTable2.fbx", Vector3(-16.4, F2, -1.2), 0, FS)
-	ModelLib.visual(self, ModelLib.FURN + "Lamp2.fbx", Vector3(-21.2, F2, -1.4), 0, FS)
-	ModelLib.solid(self, ModelLib.FURN + "Vase2.fbx", Vector3(-21.2, F2, 3.2), 0, FS)
+	ModelLib.solid(self, "BedKing", Vector3(-19.6, F2, -0.4), 90, FS)
+	ModelLib.solid(self, "Closet2", Vector3(-16.2, F2, 3.0), 180, FS)
+	ModelLib.solid(self, "CoffeeTable2", Vector3(-16.4, F2, -1.2), 0, FS)
+	ModelLib.visual(self, "Lamp2", Vector3(-21.2, F2, -1.4), 0, FS)
+	ModelLib.solid(self, "Vase2", Vector3(-21.2, F2, 3.2), 0, FS)
 	_lamp(Vector3(-19.0, F2 + 2.4, 1.0), Color(0.95, 0.75, 0.55), 8.0, 0.75)
 	# спальня 3: x -22..-15, z -10..-2 (вход z -5..-3.2)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bed_Single.fbx", Vector3(-20.4, F2, -8.2), 90, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bed_Bunk.fbx", Vector3(-16.4, F2, -8.4), -90, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "NightStand_3.fbx", Vector3(-20.6, F2, -6.2), 90, HS)
-	ModelLib.solid(self, ModelLib.FURN + "BookCase.fbx", Vector3(-18.4, F2, -9.5), 0, FS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Desk.fbx", Vector3(-20.6, F2 + 0.5, -6.2), 0, HS)
+	ModelLib.solid(self, "Bed_Single", Vector3(-20.4, F2, -8.2), 90, HS)
+	ModelLib.solid(self, "Bed_Bunk", Vector3(-16.4, F2, -8.4), -90, HS)
+	ModelLib.solid(self, "NightStand_3", Vector3(-20.6, F2, -6.2), 90, HS)
+	ModelLib.solid(self, "BookCase", Vector3(-18.4, F2, -9.5), 0, FS)
+	ModelLib.visual(self, "Light_Desk", Vector3(-20.6, F2 + 0.5, -6.2), 0, HS)
 	_lamp(Vector3(-19.0, F2 + 2.4, -6.5), Color(0.95, 0.75, 0.55), 8.0, 0.75)
 	# коридор
-	ModelLib.solid(self, ModelLib.HOUSE + "Drawer_5.fbx", Vector3(-7.8, F2, -5.0), -90, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_2.fbx", Vector3(-10.5, F2 + 0.02, -2.0), 90, HS * 1.2)
-	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_2.fbx", Vector3(-7.8, F2, 2.6), 0, HS)
+	ModelLib.solid(self, "Drawer_5", Vector3(-7.8, F2, -5.0), -90, HS)
+	ModelLib.visual(self, "Carpet_2", Vector3(-10.5, F2 + 0.02, -2.0), 90, HS * 1.2)
+	ModelLib.visual(self, "Houseplant_2", Vector3(-7.8, F2, 2.6), 0, HS)
 	_lamp(Vector3(-11.0, F2 + 2.4, -2.0), Color(0.9, 0.8, 0.65), 8.0, 0.7)
 
 func _toilet_w2() -> void:
-	ModelLib.solid(self, ModelLib.HOUSE + "Bathroom_Toilet.fbx", Vector3(-14.3, F2, -9.2), 90, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bathroom_Shower1.fbx", Vector3(-12.2, F2, -9.3), 180, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Bathroom_Towel.fbx", Vector3(-14.7, F2 + 1.2, -7.6), 90, HS)
+	ModelLib.solid(self, "Bathroom_Toilet", Vector3(-14.3, F2, -9.2), 90, HS)
+	ModelLib.solid(self, "Bathroom_Shower1", Vector3(-12.2, F2, -9.3), 180, HS)
+	ModelLib.visual(self, "Bathroom_Towel", Vector3(-14.7, F2 + 1.2, -7.6), 90, HS)
 	_lamp(Vector3(-13.2, F2 + 2.3, -8.4), Color(0.85, 0.9, 0.95), 5.0, 0.7)
 
 # ================================================================ восток, этаж 2
 
 func _library() -> void:
 	# x 7..22, z 3..10; вход с балкона (x=7, z 6..7.8) и из коридора (z=3, x 8.5..10.3)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bookshelf.fbx", Vector3(9.0, F2, 9.4), 180, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bookshelf.fbx", Vector3(11.6, F2, 9.4), 180, HS)
-	ModelLib.solid(self, ModelLib.FURN + "BookCaseLargeBooks.fbx", Vector3(21.2, F2, 7.0), -90, FS)
-	ModelLib.solid(self, ModelLib.FURN + "BookCaseBooks.fbx", Vector3(21.2, F2, 4.6), -90, FS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Shelf_Large.fbx", Vector3(17.0, F2 + 1.6, 9.7), 180, HS)
-	ModelLib.solid(self, ModelLib.KIT + "BookStand.gltf", Vector3(15.6, F2, 4.4), 160)
-	ModelLib.solid(self, ModelLib.FURN + "ChairHandle.fbx", Vector3(8.6, F2, 4.6), 45, FS)
+	ModelLib.solid(self, "Bookshelf", Vector3(9.0, F2, 9.4), 180, HS)
+	ModelLib.solid(self, "Bookshelf", Vector3(11.6, F2, 9.4), 180, HS)
+	ModelLib.solid(self, "BookCaseLargeBooks", Vector3(21.2, F2, 7.0), -90, FS)
+	ModelLib.solid(self, "BookCaseBooks", Vector3(21.2, F2, 4.6), -90, FS)
+	ModelLib.solid(self, "Shelf_Large", Vector3(17.0, F2 + 1.6, 9.7), 180, HS)
+	ModelLib.solid(self, "BookStand", Vector3(15.6, F2, 4.4), 160)
+	ModelLib.solid(self, "ChairHandle", Vector3(8.6, F2, 4.6), 45, FS)
 	for bdata in [["Book_Stack_1.gltf", Vector3(13.4, F2, 9.2)], ["BookGroup_Medium_1.gltf", Vector3(19.6, F2, 9.3)],
 			["Book_Stack_2.gltf", Vector3(8.2, F2, 6.4)], ["BookGroup_Small_1.gltf", Vector3(20.8, F2, 3.6)]]:
-		ModelLib.grab(self, ModelLib.KIT + (bdata[0] as String), bdata[1] as Vector3, 1.0)
+		ModelLib.grab(self, bdata[0] as String, bdata[1] as Vector3, 1.0)
 	_satanic_circle(Vector3(15.6, F2 + 0.02, 7.0), 2.4)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Ceiling2.fbx", Vector3(15.6, CEIL - 0.05, 7.0), 0, HS)
+	ModelLib.visual(self, "Light_Ceiling2", Vector3(15.6, CEIL - 0.05, 7.0), 0, HS)
 	_lamp(Vector3(12.0, F2 + 2.6, 7.0), Color(1.0, 0.8, 0.55), 10.0, 0.85)
 
 ## Сатанинский круг: багровое кольцо, пентаграмма, свечи по вершинам.
@@ -585,9 +599,9 @@ func _satanic_circle(center: Vector3, radius: float) -> void:
 		line.rotation.y = -atan2(dir.z, dir.x)
 		line.material_override = MeshLib.mat(Color(0.75, 0.1, 0.12), 1.0, 0.0, Color(0.5, 0.04, 0.05))
 	for p in pts:
-		ModelLib.solid(self, ModelLib.KIT + "CandleStick.gltf", Vector3(p.x, F2, p.z) + (p - center).normalized() * 0.4)
+		ModelLib.solid(self, "CandleStick", Vector3(p.x, F2, p.z) + (p - center).normalized() * 0.4)
 	BreakableProp.make(self, "skullpot", center + Vector3(0.4, 0.2, 0.3))
-	ModelLib.grab(self, ModelLib.KIT + "Scroll_2.gltf", center + Vector3(-0.3, 0.1, -0.2), 0.5)
+	ModelLib.grab(self, "Scroll_2", center + Vector3(-0.3, 0.1, -0.2), 0.5)
 	var rl := OmniLight3D.new()
 	rl.position = center + Vector3(0, 1.3, 0)
 	rl.light_color = Color(0.9, 0.15, 0.1)
@@ -597,27 +611,27 @@ func _satanic_circle(center: Vector3, radius: float) -> void:
 
 func _bedrooms_east() -> void:
 	# спальня 4: x 15..22, z -2..3 (вход z 0..1.8)
-	ModelLib.solid(self, ModelLib.FURN + "Bed.fbx", Vector3(19.6, F2, -0.6), -90, FS)
-	ModelLib.solid(self, ModelLib.KIT + "Nightstand_Shelf.gltf", Vector3(21.0, F2, 1.6), -90)
-	ModelLib.solid(self, ModelLib.FURN + "Closet.fbx", Vector3(16.4, F2, 2.4), 180, FS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Cube.fbx", Vector3(21.0, F2 + 0.75, 1.6), 0, HS)
+	ModelLib.solid(self, "Bed", Vector3(19.6, F2, -0.6), -90, FS)
+	ModelLib.solid(self, "Nightstand_Shelf", Vector3(21.0, F2, 1.6), -90)
+	ModelLib.solid(self, "Closet", Vector3(16.4, F2, 2.4), 180, FS)
+	ModelLib.visual(self, "Light_Cube", Vector3(21.0, F2 + 0.75, 1.6), 0, HS)
 	_lamp(Vector3(19.0, F2 + 2.4, 0.5), Color(0.95, 0.75, 0.55), 8.0, 0.75)
 	# спальня 5: x 15..22, z -10..-2 (вход z -5..-3.2)
-	ModelLib.solid(self, ModelLib.FURN + "BedKing.fbx", Vector3(19.4, F2, -8.2), 180, FS)
-	ModelLib.solid(self, ModelLib.KIT + "Nightstand_Shelf.gltf", Vector3(21.2, F2, -9.2), -90)
-	ModelLib.solid(self, ModelLib.HOUSE + "Drawer_4.fbx", Vector3(16.2, F2, -9.3), 90, HS)
-	ModelLib.solid(self, ModelLib.FURN + "Plant.fbx", Vector3(16.4, F2, -2.8), 0, FS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Light_Small.fbx", Vector3(21.2, F2 + 0.75, -9.2), 0, HS)
+	ModelLib.solid(self, "BedKing", Vector3(19.4, F2, -8.2), 180, FS)
+	ModelLib.solid(self, "Nightstand_Shelf", Vector3(21.2, F2, -9.2), -90)
+	ModelLib.solid(self, "Drawer_4", Vector3(16.2, F2, -9.3), 90, HS)
+	ModelLib.solid(self, "Plant", Vector3(16.4, F2, -2.8), 0, FS)
+	ModelLib.visual(self, "Light_Small", Vector3(21.2, F2 + 0.75, -9.2), 0, HS)
 	_lamp(Vector3(19.0, F2 + 2.4, -6.5), Color(0.95, 0.75, 0.55), 8.0, 0.75)
 	# коридор
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_2.fbx", Vector3(10.5, F2 + 0.02, -2.0), 90, HS * 1.2)
-	ModelLib.solid(self, ModelLib.HOUSE + "Drawer_1.fbx", Vector3(7.8, F2, -5.0), 90, HS)
-	ModelLib.visual(self, ModelLib.KIT + "Lantern_Wall.gltf", Vector3(7.35, F2 + 2.0, -1.0), 90)
+	ModelLib.visual(self, "Carpet_2", Vector3(10.5, F2 + 0.02, -2.0), 90, HS * 1.2)
+	ModelLib.solid(self, "Drawer_1", Vector3(7.8, F2, -5.0), 90, HS)
+	ModelLib.visual(self, "Lantern_Wall", Vector3(7.35, F2 + 2.0, -1.0), 90)
 	_lamp(Vector3(10.5, F2 + 2.4, -2.5), Color(0.9, 0.8, 0.65), 8.0, 0.7)
 
 func _broom_closet() -> void:
 	# x 7..11.5, z -10..-7.5; дверь в стене z=-7.5 (x 8.4..9.6)
-	ModelLib.visual(self, ModelLib.KIT + "Peg_Rack.gltf", Vector3(9.2, F2 + 1.7, -9.7))
+	ModelLib.visual(self, "Peg_Rack", Vector3(9.2, F2 + 1.7, -9.7))
 	broom = Broom.new()
 	broom.position = Vector3(8.4, F2 + 0.3, -8.6)
 	broom.rotation_degrees = Vector3(0, 40, 0)
@@ -627,17 +641,17 @@ func _broom_closet() -> void:
 		extra.position = bpos
 		extra.rotation_degrees = Vector3(0, randf_range(0, 180), 0)
 		add_child(extra)
-	ModelLib.grab(self, ModelLib.KIT + "Bucket_Metal.gltf", Vector3(10.8, F2, -9.5), 2.0)
-	ModelLib.solid(self, ModelLib.KIT + "Crate_Wooden.gltf", Vector3(7.6, F2, -9.4), 15)
-	ModelLib.solid(self, ModelLib.KIT + "Shelf_Simple.gltf", Vector3(11.15, F2 + 1.1, -8.8), -90)
+	ModelLib.grab(self, "Bucket_Metal", Vector3(10.8, F2, -9.5), 2.0)
+	ModelLib.solid(self, "Crate_Wooden", Vector3(7.6, F2, -9.4), 15)
+	ModelLib.solid(self, "Shelf_Simple", Vector3(11.15, F2 + 1.1, -8.8), -90)
 	DustPatch.make(self, Vector3(9.8, F2, -8.0), 0.45)   # ирония: в кладовке мётел пыльно
 	_lamp(Vector3(9.2, F2 + 2.2, -8.8), Color(0.9, 0.85, 0.7), 4.5, 0.6)
 
 func _toilet_e2() -> void:
-	ModelLib.solid(self, ModelLib.HOUSE + "Bathroom_Toilet2.fbx", Vector3(14.3, F2, -9.2), -90, HS)
-	ModelLib.solid(self, ModelLib.HOUSE + "Bathroom_Sink.fbx", Vector3(12.3, F2, -9.4), 180, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Bathroom_ToiletPaper.fbx", Vector3(14.7, F2 + 0.9, -8.4), -90, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Trashcan_Small2.fbx", Vector3(11.9, F2, -7.8), 0, HS)
+	ModelLib.solid(self, "Bathroom_Toilet2", Vector3(14.3, F2, -9.2), -90, HS)
+	ModelLib.solid(self, "Bathroom_Sink", Vector3(12.3, F2, -9.4), 180, HS)
+	ModelLib.visual(self, "Bathroom_ToiletPaper", Vector3(14.7, F2 + 0.9, -8.4), -90, HS)
+	ModelLib.visual(self, "Trashcan_Small2", Vector3(11.9, F2, -7.8), 0, HS)
 	_lamp(Vector3(13.2, F2 + 2.3, -8.4), Color(0.85, 0.9, 0.95), 5.0, 0.7)
 
 # ================================================================ спуски в подвал
@@ -657,25 +671,24 @@ func _shaft(r: Rect2, prompt: String, spawn_id: String) -> void:
 	MeshLib.solid_box(self, Vector3(0.25, 2.4, r.size.y + 0.5), Vector3(x1 + 0.1, SHAFT_BOTTOM + 1.2, (z0 + z1) / 2.0), MeshLib.STONE_DARK)
 	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 2.4, 0.25), Vector3(cx, SHAFT_BOTTOM + 1.2, z1 + 0.1), MeshLib.STONE_DARK)
 	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 0.3, 2.0), Vector3(cx, SHAFT_BOTTOM - 0.15, z1 + 1.0), MeshLib.STONE)
-	# наклонная коллизия лестницы: толстая и утопленная, чтобы на входе не было
-	# порога-торца, об который спуск застревает
+	# спуск — цельный каменный пандус: по нему и сходят, и поднимаются без порогов
 	var run := r.size.y
 	var rise := FLOOR_Y - SHAFT_BOTTOM
 	var angle := rad_to_deg(atan2(rise, run))
-	var thick := 0.8
-	MeshLib.solid_invisible(self, Vector3(r.size.x, thick, sqrt(run * run + rise * rise) + 1.6),
+	var slope := sqrt(run * run + rise * rise)
+	var thick := 0.4
+	var ramp := ModelLib.tex_solid_box(self, Vector3(r.size.x, thick, slope + 1.4),
 		Vector3(cx, (FLOOR_Y + SHAFT_BOTTOM) / 2.0 - (thick / 2.0) / cos(deg_to_rad(angle)), (z0 + z1) / 2.0),
-		Vector3(angle, 0, 0))
-	# ступени (вниз по +z)
-	for i in 10:
-		var frac := i / 9.0
-		ModelLib.tex_box(self, Vector3(r.size.x, 0.12, run / 10.0 + 0.04),
-			Vector3(cx, FLOOR_Y - frac * rise, z0 + frac * run + run / 20.0),
-			"stone_light.png", Color(0.62, 0.62, 0.68), 0.5)
-	# перила по краю дыры сверху
-	for rx in [x0 - 0.12, x1 + 0.12]:
-		MeshLib.solid_box(self, Vector3(0.1, 0.95, r.size.y), Vector3(rx, FLOOR_Y + 0.48, (z0 + z1) / 2.0), MeshLib.WOOD_DARK)
-	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 0.95, 0.1), Vector3(cx, FLOOR_Y + 0.48, z1 + 0.2), MeshLib.WOOD_DARK)
+		"stone_light.png", Color(0.6, 0.6, 0.66), 0.4, Vector3(angle, 0, 0))
+	ramp.name = "CellarRamp"
+	# насечки-ступени поверх пандуса (визуал, ходьбе не мешают)
+	for i in 9:
+		var frac := (i + 0.5) / 9.0
+		ModelLib.tex_box(self, Vector3(r.size.x - 0.1, 0.05, 0.1),
+			Vector3(cx, FLOOR_Y - frac * rise + 0.14, z0 + frac * run),
+			"stone_light.png", Color(0.45, 0.45, 0.5), 0.4, Vector3(angle, 0, 0))
+	# ограждение только по дальнему краю, вход остаётся свободным
+	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 0.95, 0.12), Vector3(cx, FLOOR_Y + 0.48, z1 + 0.25), MeshLib.WOOD_DARK)
 	# табличка и портал внизу
 	MeshLib.label(self, "▼", Vector3(cx, FLOOR_Y + 1.3, z0 - 0.3), 64, MeshLib.ACCENT)
 	var p := Portal.make(self, Vector3(cx, SHAFT_BOTTOM + 0.2, z1 - 0.5), prompt, "cellar", spawn_id)
@@ -750,7 +763,7 @@ func _exterior() -> void:
 		ModelLib.tex_solid_box(self, Vector3(0.7, 3.6, 0.7), Vector3(gx, 1.8, -HZ - 0.6), "stone_light.png", Color(0.7, 0.72, 0.8), 0.4)
 	MeshLib.box(self, Vector3(7.0, 0.4, 3.4), Vector3(0, 3.8, -HZ - 1.4), MeshLib.HOUSE_TRIM)
 	front_door = DoorGate.make_model(self, Vector3(-1.8, FLOOR_Y, -HZ), 180.0, 3.6, 2.8,
-		ModelLib.HOUSE + "Door_Double.fbx")
+		"Door_Double")
 	front_door.locked = true
 	front_door.locked_hint = "Парадные двери заколочены. Тебе — через чёрный ход, как и положено прислуге."
 	_lamp(Vector3(BACK_DOOR_X, 2.8, HZ + 1.2), MeshLib.ACCENT, 7.0, 1.3)

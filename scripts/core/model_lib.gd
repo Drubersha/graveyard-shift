@@ -2,11 +2,8 @@ class_name ModelLib
 ## Фабрика внешних моделей (Quaternius, CC0) и текстурных материалов особняка.
 ## Паки в разном масштабе: хауспак крупнее жизни, мебельный — мельче.
 
-const HOUSE := "res://assets/ext/house/"        # масштаб ~0.6
-const FURN := "res://assets/ext/furniture/"     # масштаб ~1.9
-const KIT := "res://assets/ext/megakit/"        # масштаб 1.0
-const HOUSE_SCALE := 0.6
-const FURN_SCALE := 1.9
+const HOUSE_SCALE := 0.6   # хауспак крупнее жизни
+const FURN_SCALE := 1.9    # мебельный пак мельче
 
 const TEX := "res://assets/textures/"
 
@@ -15,7 +12,9 @@ static var _tex_cache: Dictionary = {}
 
 # ---------------------------------------------------------------- сцены
 
-static func scene(path: String) -> PackedScene:
+## Принимает короткое имя из каталога («Kitchen_Fridge») или полный res://-путь.
+static func scene(name_or_path: String) -> PackedScene:
+	var path := name_or_path if name_or_path.begins_with("res://") else ItemCatalog.path(name_or_path)
 	if not _scene_cache.has(path):
 		_scene_cache[path] = load(path)
 	return _scene_cache[path]
@@ -51,12 +50,14 @@ static func solid(parent: Node, path: String, pos: Vector3, rot_y := 0.0, scale 
 	return body
 
 ## Хватаемая физическая модель (зелья, книги, черепа, вёдра).
+## Кладёт в meta("item_label") подпись вида «042_Barrel» для интерфейса.
 static func grab(parent: Node, path: String, pos: Vector3, mass := 2.0, rot_y := 0.0, scale := 1.0) -> RigidBody3D:
 	var body := RigidBody3D.new()
 	body.mass = mass
 	body.position = pos
 	body.rotation_degrees = Vector3(0, rot_y, 0)
 	body.add_to_group("grabbable")
+	body.set_meta("item_label", ItemCatalog.label(path))
 	parent.add_child(body)
 	var vis := visual(body, path, Vector3.ZERO, 0.0, scale)
 	var aabb := merged_aabb(vis)
@@ -109,8 +110,8 @@ static func pbr_mat(base_name: String, tint := Color.WHITE, uv_scale := 0.5) -> 
 ## Надгробие из Spooky Graveyard: FBX + свой диффуз/нормал вручную.
 ## Нейминг текстур в паке гуляет (grave_1 vs grave_01, «name normal.png») — подбираем.
 static func grave(parent: Node, name: String, pos: Vector3, rot_y := 0.0, scale := 1.0) -> StaticBody3D:
-	var body := solid(parent, "res://assets/ext/graveyard/" + name + ".fbx", pos, rot_y, scale)
 	var dir := "res://assets/ext/graveyard/"
+	var body := solid(parent, dir + name + ".fbx", pos, rot_y, scale)
 	var alt := name.replace("_0", "_")
 	var mat := StandardMaterial3D.new()
 	var albedo := _first_existing([dir + name + ".png", dir + alt + ".png", dir + name + "a.png"])
