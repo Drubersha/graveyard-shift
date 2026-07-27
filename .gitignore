@@ -5,6 +5,9 @@
 models+/
 Waiting/
 
+# Дизайн-док — только локально
+docs/
+
 # Exported builds
 build/
 *.exe
