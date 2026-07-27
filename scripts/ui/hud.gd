@@ -13,6 +13,7 @@ var _fade: ColorRect
 var _hint_timer := 0.0
 
 func _ready() -> void:
+	add_to_group("hud")
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -24,7 +25,7 @@ func _ready() -> void:
 	var help := _make_label(root, 13, HORIZONTAL_ALIGNMENT_RIGHT)
 	_set_rect(help, 1.0, 0.0, -370, 12, 356, 200)
 	help.text = "WASD — ходить  |  Space — прыжок
-ЛКМ — схватить / держать и отпустить — швырнуть
+ЛКМ — взять / клик — поставить / держать — швырнуть
 E — взаимодействовать
 F — оторвать/прирастить руку (ползёт удалённо)
 G — снять/вернуть череп (камера всегда с черепом)

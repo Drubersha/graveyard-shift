@@ -1,12 +1,15 @@
 class_name SinkCounter extends StaticBody3D
-## Кухонная мойка. Грязная тарелка, попавшая в раковину, отмывается сама
-## (вода волшебная, как и всё в этом доме).
+## Кухонная мойка. Подойди с грязной тарелкой и нажми E — откроется мини-игра
+## мытья: тарелка крупным планом, костлявая рука с губкой, пятна оттираются.
 
 signal washed
 
+var prompt := "Помыть тарелку"
 var model_path := ""   # модель мойки из хауспака вместо процедурной тумбы
+var _minigame: DishMinigame = null
 
 func _ready() -> void:
+	add_to_group("interactable")
 	var zone_y := 1.05
 	if model_path == "":
 		var col := CollisionShape3D.new()
@@ -42,14 +45,28 @@ func _ready() -> void:
 	add_child(zone)
 	zone.body_entered.connect(_on_body)
 
+func get_prompt() -> String:
+	return prompt
+
+func interact(by: Node) -> void:
+	if is_instance_valid(_minigame):
+		return
+	var skel := by as SkeletonPlayer
+	var plate: BreakableProp = null
+	if skel and is_instance_valid(skel.held):
+		plate = skel.held as BreakableProp
+	if plate == null or plate.kind != "plate_dirty":
+		Game.hint("Возьми грязную тарелку (ЛКМ) и подойди к раковине.")
+		return
+	_minigame = DishMinigame.start(get_tree().current_scene, plate)
+	_minigame.finished.connect(func(ok: bool) -> void:
+		_minigame = null
+		if ok:
+			washed.emit()
+			Game.hint("Чистая. Можно вернуть в обеденный зал — короткий клик ЛКМ кладёт аккуратно."))
+
+## Просто бросить тарелку в мойку недостаточно — мыть надо руками (мини-игра).
 func _on_body(body: Node) -> void:
 	var prop := body as BreakableProp
-	if prop and prop.kind == "plate_dirty":
-		prop.wash()
-		# всплеск чистоты
-		var sparkle := MeshLib.sphere(self, 0.12, Vector3(0, 1.2, 0), MeshLib.ACCENT)
-		sparkle.material_override = MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)
-		var tw := create_tween()
-		tw.tween_property(sparkle, "scale", Vector3(0.01, 0.01, 0.01), 0.5)
-		tw.tween_callback(sparkle.queue_free)
-		washed.emit()
+	if prop and prop.kind == "plate_dirty" and not is_instance_valid(_minigame):
+		Game.hint("Тарелка в мойке, но сама себя не отмоет. Возьми её (ЛКМ) и нажми E.")

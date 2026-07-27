@@ -18,7 +18,7 @@ var cellar: Dungeon
 
 var _dust_done := 0
 var _plates_done := 0
-var _plates_total := 5
+var _plates_total := 2
 var _dust_total := 6
 var _beacon: MeshInstance3D
 
@@ -121,7 +121,7 @@ func _enter(s: Stage) -> void:
 			_objective_dishes()
 			if mansion:
 				_beacon_at(mansion.sink.global_position)
-				Game.hint("Посуда — в обеденном зале (за кухней). Раковина — на кухне. Носи или бей, дело твоё.")
+				Game.hint("Две тарелки — в обеденном зале. Бери (ЛКМ), неси к раковине, жми E — и три губкой. Или разбей, дело твоё.")
 			if _plates_done >= _plates_total:
 				_dishes_complete()
 		Stage.BREAKFAST:
@@ -243,7 +243,7 @@ func _dishes_complete() -> void:
 	_enter(Stage.BREAKFAST)
 
 func _objective_dishes() -> void:
-	Game.objective_changed.emit("«Уборка», часть 2: грязная посуда из обеденного зала (%d/%d). Мой в раковине на кухне. Или разбей — мне правда всё равно." % [_plates_done, _plates_total])
+	Game.objective_changed.emit("«Уборка», часть 2: грязная посуда (%d/%d). Неси тарелку из обеденного зала к раковине и жми E — начнётся мытьё. Или разбей, мне всё равно." % [_plates_done, _plates_total])
 
 func _on_cooked() -> void:
 	if stage != Stage.BREAKFAST or mansion == null:

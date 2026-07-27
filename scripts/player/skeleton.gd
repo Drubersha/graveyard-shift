@@ -55,6 +55,9 @@ func _ready() -> void:
 	col.shape = cap
 	col.position = Vector3(0, 0.85, 0)
 	add_child(col)
+	# прилипание к полу на спусках: без него скелет «летит» по ступеням
+	floor_snap_length = 0.6
+	floor_max_angle = deg_to_rad(52.0)
 	Game.set_camera_target(self)
 	var anchor := Node3D.new()
 	anchor.name = "CamAnchor"
@@ -193,7 +196,11 @@ func _handle_actions(delta: float) -> void:
 		if not Input.is_action_pressed(_charging_action):
 			var power := lerpf(THROW_MIN, THROW_MAX, _charge)
 			if _charging_action == "grab":
-				_throw_held(power)
+				# короткий клик — поставить аккуратно, удержание — швырнуть
+				if _charge < 0.18:
+					_place_held()
+				else:
+					_throw_held(power)
 			else:
 				_detach_skull(power)
 			_charging_action = ""
@@ -238,7 +245,7 @@ func _try_grab() -> void:
 	if best:
 		held = best
 		held.freeze = true
-		Game.hint("Держи ЛКМ и отпусти — швырнуть")
+		Game.hint("Короткий клик ЛКМ — поставить аккуратно. Держать и отпустить — швырнуть.")
 
 func _update_held() -> void:
 	if not is_instance_valid(held):
@@ -255,6 +262,25 @@ func _throw_held(power: float) -> void:
 	held.linear_velocity = (rig.aim() if rig else Vector3.FORWARD) * power + Vector3.UP * 1.5
 	held.angular_velocity = Vector3(randf_range(-5, 5), randf_range(-5, 5), randf_range(-5, 5))
 	held = null
+
+## Аккуратно поставить предмет на поверхность перед собой — без импульса,
+## ровно и не разбив. Короткий клик ЛКМ.
+func _place_held() -> void:
+	if not is_instance_valid(held):
+		held = null
+		return
+	var rb := held
+	held = null
+	var from := _hold_point()
+	var params := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 2.5, 1, [rb.get_rid(), get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(params)
+	if hit:
+		rb.global_position = (hit["position"] as Vector3) + Vector3.UP * 0.1
+	rb.global_rotation = Vector3(0, rb.global_rotation.y, 0)
+	rb.freeze = false
+	rb.linear_velocity = Vector3.ZERO
+	rb.angular_velocity = Vector3.ZERO
+	Game.hint("Поставил. Целую.")
 
 func _release_held() -> void:
 	if is_instance_valid(held):

@@ -200,7 +200,7 @@ func _floors() -> void:
 	# потолок
 	MeshLib.solid_box(self, Vector3(W, 0.2, D), Vector3(0, CEIL + 0.1, 0), MeshLib.HOUSE_TRIM)
 	# ограждение балкона по краю атриума (кроме мест, где приходят лестницы)
-	for seg in [[-HALL_HX, -6.6], [-4.4, 4.4], [6.6, HALL_HX]]:
+	for seg in [[-HALL_HX, -4.8], [-2.4, 2.4], [4.8, HALL_HX]]:
 		MeshLib.solid_box(self, Vector3(seg[1] - seg[0], 1.0, 0.1),
 			Vector3((seg[0] + seg[1]) / 2.0, F2 + 0.5, 4.0), MeshLib.WOOD_DARK)
 		ModelLib.tex_box(self, Vector3(seg[1] - seg[0], 0.08, 0.16),
@@ -209,13 +209,18 @@ func _floors() -> void:
 ## Две парадные лестницы в пустоте атриума: снизу от входа — вверх на балкон.
 func _stairs_main() -> void:
 	for sx: float in [-1.0, 1.0]:
-		var cx: float = sx * 5.5
+		var cx: float = sx * 3.6      # ближе к центру: у стен крыльев должны быть свободные проходы
 		var run := 12.0     # z от -8 до 4
 		var rise: float = F2 - FLOOR_Y
 		var angle := rad_to_deg(atan2(rise, run))
-		# наклонная плита-коллизия (+z конец выше → отрицательный угол по X)
-		MeshLib.solid_invisible(self, Vector3(2.0, 0.2, sqrt(run * run + rise * rise) + 0.4),
-			Vector3(cx, (FLOOR_Y + F2) / 2.0, -2.0), Vector3(-angle, 0, 0))
+		var slope := sqrt(run * run + rise * rise)
+		# Наклонная плита-коллизия. Толстая и утопленная: её верхняя грань точно
+		# совпадает с линией ступеней, а торцы прячутся под перекрытия — иначе
+		# на стыке с полом торчит порог, об который спуск застревает.
+		var thick := 0.8
+		MeshLib.solid_invisible(self, Vector3(2.0, thick, slope + 2.4),
+			Vector3(cx, (FLOOR_Y + F2) / 2.0 - (thick / 2.0) / cos(deg_to_rad(angle)), -2.0),
+			Vector3(-angle, 0, 0))
 		# ступени
 		for i in 20:
 			var frac := i / 19.0
@@ -227,9 +232,9 @@ func _stairs_main() -> void:
 				Vector3(cx, FLOOR_Y + (y - FLOOR_Y) / 2.0, z), "wood_panel.png", Color(0.45, 0.36, 0.3), 0.5)
 		# перила с обеих сторон
 		for rx: float in [cx - 1.05, cx + 1.05]:
-			MeshLib.solid_box(self, Vector3(0.08, 0.95, sqrt(run * run + rise * rise)),
+			MeshLib.solid_box(self, Vector3(0.08, 0.95, slope),
 				Vector3(rx, (FLOOR_Y + F2) / 2.0 + 0.5, -2.0), MeshLib.WOOD_DARK, Vector3(-angle, 0, 0))
-			ModelLib.tex_box(self, Vector3(0.14, 0.09, sqrt(run * run + rise * rise)),
+			ModelLib.tex_box(self, Vector3(0.14, 0.09, slope),
 				Vector3(rx, (FLOOR_Y + F2) / 2.0 + 1.0, -2.0), "gold_band.png", Color(1, 0.95, 0.8), 0.8, Vector3(-angle, 0, 0))
 		# столбы у подножия
 		ModelLib.tex_solid_box(self, Vector3(0.34, 1.5, 0.34), Vector3(cx - 1.05, FLOOR_Y + 0.75, -8.4),
@@ -296,8 +301,8 @@ func _grand_hall() -> void:
 	# люстра под самым потолком атриума — иначе висит перед лицом на балконе
 	var chandelier := ModelLib.visual(self, ModelLib.KIT + "Chandelier.gltf", Vector3(0, CEIL - 0.75, -2.0), 0.0, 1.1)
 	MeshLib.cylinder(chandelier, 0.025, 0.7, Vector3(0, 0.7, 0), MeshLib.METAL)
-	# колонны вдоль зала (у стен, не в проходах)
-	for cz: float in [-7.0, -1.0, 5.0]:
+	# колонны вдоль зала — строго между проёмами крыльев (z 5..6.8 и -6.8..-5)
+	for cz: float in [-8.6, -2.0, 2.0, 8.6]:
 		for cx: float in [-6.4, 6.4]:
 			ModelLib.tex_solid_box(self, Vector3(0.55, H1, 0.55), Vector3(cx, FLOOR_Y + H1 / 2.0, cz),
 				"stone_light.png", Color(0.7, 0.72, 0.8), 0.4)
@@ -305,13 +310,13 @@ func _grand_hall() -> void:
 	ModelLib.visual(self, ModelLib.KIT + "Banner_1.gltf", Vector3(-3.6, 4.6, -HZ + 0.35))
 	ModelLib.visual(self, ModelLib.KIT + "Banner_2.gltf", Vector3(3.6, 4.6, -HZ + 0.35))
 	ModelLib.gothic_ornament(self, 1.6, Vector3(0, 5.2, -HZ + 0.3), 0, 2)
-	# мебель по углам зала — далеко от проёмов
-	ModelLib.solid(self, ModelLib.KIT + "Bench.gltf", Vector3(-6.0, FLOOR_Y, 7.6), 90)
-	ModelLib.solid(self, ModelLib.KIT + "Bench.gltf", Vector3(6.0, FLOOR_Y, 7.6), -90)
-	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_1.fbx", Vector3(-6.2, FLOOR_Y, -8.8), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_3.fbx", Vector3(6.2, FLOOR_Y, -8.8), 0, HS)
-	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_Round.fbx", Vector3(0, FLOOR_Y + 0.02, 7.0), 0, HS * 1.4)
-	_candle_stand_pair(Vector3(-6.2, FLOOR_Y, 1.6), Vector3(6.2, FLOOR_Y, 1.6))
+	# мебель — вплотную к задней стене зала, вне створов проёмов и лестниц
+	ModelLib.solid(self, ModelLib.KIT + "Bench.gltf", Vector3(-4.6, FLOOR_Y, 9.3), 180)
+	ModelLib.solid(self, ModelLib.KIT + "Bench.gltf", Vector3(4.6, FLOOR_Y, 9.3), 180)
+	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_1.fbx", Vector3(-6.4, FLOOR_Y, 9.3), 0, HS)
+	ModelLib.visual(self, ModelLib.HOUSE + "Houseplant_3.fbx", Vector3(6.4, FLOOR_Y, 9.3), 0, HS)
+	ModelLib.visual(self, ModelLib.HOUSE + "Carpet_Round.fbx", Vector3(0, FLOOR_Y + 0.02, 8.0), 0, HS * 1.4)
+	_candle_stand_pair(Vector3(-6.4, FLOOR_Y, -0.6), Vector3(6.4, FLOOR_Y, -0.6))
 
 func _candle_stand_pair(a: Vector3, b: Vector3) -> void:
 	ModelLib.solid(self, ModelLib.KIT + "CandleStick_Stand.gltf", a)
@@ -355,12 +360,12 @@ func _dining() -> void:
 	for i in 3:
 		ModelLib.solid(self, ModelLib.HOUSE + "Chair_1.fbx", Vector3(-19.7 + i * 1.2, FLOOR_Y, 8.5), 180, HS)
 		ModelLib.solid(self, ModelLib.HOUSE + "Chair_1.fbx", Vector3(-19.7 + i * 1.2, FLOOR_Y, 6.3), 0, HS)
-	# грязная посуда после вчерашнего — вот она, работа на утро
-	for ppos in [Vector3(-19.4, FLOOR_Y + 0.85, 7.8), Vector3(-18.4, FLOOR_Y + 0.85, 7.1),
-			Vector3(-17.5, FLOOR_Y + 0.85, 7.7), Vector3(-19.9, FLOOR_Y + 0.05, 6.0),
-			Vector3(-16.8, FLOOR_Y + 0.05, 8.9)]:
+	# грязная посуда после вчерашнего — ровно две, их и моем
+	for ppos in [Vector3(-19.3, FLOOR_Y + 0.85, 7.8), Vector3(-17.7, FLOOR_Y + 0.85, 7.1)]:
 		dirty_plates.append(BreakableProp.make(self, "plate_dirty", ppos))
+	# место, куда чистые тарелки просятся обратно
 	ModelLib.visual(self, ModelLib.HOUSE + "Plate_1.fbx", Vector3(-20.2, FLOOR_Y + 0.78, 7.2), 0, HS)
+	ModelLib.visual(self, ModelLib.HOUSE + "Plate_2.fbx", Vector3(-16.9, FLOOR_Y + 0.78, 7.9), 0, HS)
 	ModelLib.solid(self, ModelLib.HOUSE + "Kitchen_CabinetSmall.fbx", Vector3(-21.0, FLOOR_Y, 2.0), 90, HS)
 	ModelLib.solid(self, ModelLib.FURN + "Closet.fbx", Vector3(-16.2, FLOOR_Y, 1.4), -90, FS)
 	ModelLib.visual(self, ModelLib.HOUSE + "Curtains_Double.fbx", Vector3(-18.5, FLOOR_Y, 9.5), 0, HS)
@@ -486,12 +491,14 @@ func _corridor_e1() -> void:
 
 func _living_room() -> void:
 	# x -15..-7, z 4..10. Вход с балкона (x=-7, z 6..7.8), в коридор (z=4, x -11..-9.2)
+	# спинкой к северной стене, сиденьем в комнату
+	ModelLib.solid(self, ModelLib.HOUSE + "Couch_Large1.fbx", Vector3(-12.6, F2, 9.1), 0, HS)
+	# сидит на подушках лицом в комнату, а не за спинкой
 	couch_marker = Node3D.new()
-	couch_marker.position = Vector3(-12.6, F2, 8.4)
-	couch_marker.rotation_degrees = Vector3(0, 180, 0)
+	couch_marker.position = Vector3(-12.6, F2 + 0.42, 8.55)
+	couch_marker.rotation_degrees = Vector3(0, 0, 0)
 	add_child(couch_marker)
-	ModelLib.solid(self, ModelLib.HOUSE + "Couch_Large1.fbx", Vector3(-12.6, F2, 8.8), 180, HS)
-	serve_zone = ServeZone.make(self, Vector3(-12.6, F2, 7.4))
+	serve_zone = ServeZone.make(self, Vector3(-12.6, F2, 7.3))
 	var fp := ModelLib.solid(self, ModelLib.HOUSE + "Fireplace.fbx", Vector3(-12.6, F2, 4.6), 0, HS)
 	var fire := MeshLib.box(fp, Vector3(0.8, 0.4, 0.2), Vector3(0, 0.35, -0.1), Color(1.0, 0.45, 0.1))
 	fire.material_override = MeshLib.mat(Color(1.0, 0.45, 0.1), 1.0, 0.0, Color(1.0, 0.5, 0.1))
@@ -650,12 +657,15 @@ func _shaft(r: Rect2, prompt: String, spawn_id: String) -> void:
 	MeshLib.solid_box(self, Vector3(0.25, 2.4, r.size.y + 0.5), Vector3(x1 + 0.1, SHAFT_BOTTOM + 1.2, (z0 + z1) / 2.0), MeshLib.STONE_DARK)
 	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 2.4, 0.25), Vector3(cx, SHAFT_BOTTOM + 1.2, z1 + 0.1), MeshLib.STONE_DARK)
 	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 0.3, 2.0), Vector3(cx, SHAFT_BOTTOM - 0.15, z1 + 1.0), MeshLib.STONE)
-	# наклонная коллизия лестницы
+	# наклонная коллизия лестницы: толстая и утопленная, чтобы на входе не было
+	# порога-торца, об который спуск застревает
 	var run := r.size.y
 	var rise := FLOOR_Y - SHAFT_BOTTOM
 	var angle := rad_to_deg(atan2(rise, run))
-	MeshLib.solid_invisible(self, Vector3(r.size.x, 0.25, sqrt(run * run + rise * rise) + 0.3),
-		Vector3(cx, (FLOOR_Y + SHAFT_BOTTOM) / 2.0, (z0 + z1) / 2.0), Vector3(angle, 0, 0))
+	var thick := 0.8
+	MeshLib.solid_invisible(self, Vector3(r.size.x, thick, sqrt(run * run + rise * rise) + 1.6),
+		Vector3(cx, (FLOOR_Y + SHAFT_BOTTOM) / 2.0 - (thick / 2.0) / cos(deg_to_rad(angle)), (z0 + z1) / 2.0),
+		Vector3(angle, 0, 0))
 	# ступени (вниз по +z)
 	for i in 10:
 		var frac := i / 9.0

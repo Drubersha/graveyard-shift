@@ -10,8 +10,10 @@ var _frame := 0
 var _teleport := Vector3.INF  # --tp=x,y,z — телепорт игрока перед скриншотом
 var _loc := ""                # --loc=indoor — переключить локацию перед скриншотом
 var _first_person := false    # --fpv — снимать от первого лица
+var _yaw := INF               # --yaw=градусы — повернуть камеру для скриншота
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS   # переживать паузу мини-игр
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--shot="):
 			_shot_path = arg.trim_prefix("--shot=")
@@ -24,8 +26,16 @@ func _ready() -> void:
 			var parts := arg.trim_prefix("--tp=").split(",")
 			if parts.size() == 3:
 				_teleport = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
+		elif arg.begins_with("--yaw="):
+			_yaw = deg_to_rad(float(arg.trim_prefix("--yaw=")))
 		elif arg == "--fpv":
 			_first_person = true
+		elif arg.begins_with("--minigame="):
+			var mg := load("res://scripts/tools/shot_minigame.gd")
+			if mg:
+				var node: Node = (mg as GDScript).new()
+				node.call("setup", arg.trim_prefix("--minigame="))
+				add_child.call_deferred(node)
 		elif arg == "--selftest":
 			var st := load("res://scripts/core/selftest.gd")
 			if st:
@@ -46,8 +56,11 @@ func _process(_delta: float) -> void:
 		if skel.state == SkeletonPlayer.State.SHATTERED:
 			skel.force_reassemble()
 		skel.global_position = _teleport
-		if _first_person and Game.camera_rig:
-			(Game.camera_rig as CameraRig).toggle_view()
+		var rig := Game.camera_rig as CameraRig
+		if rig and _yaw != INF:
+			rig.yaw = _yaw
+		if _first_person and rig:
+			rig.toggle_view()
 	if _frame >= _quit_frame:
 		if _shot_path != "":
 			var img := get_viewport().get_texture().get_image()

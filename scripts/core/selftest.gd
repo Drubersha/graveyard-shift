@@ -17,6 +17,8 @@ var _serve_ok := false
 var _sink_plate: BreakableProp
 
 func _ready() -> void:
+	# мини-игры ставят дерево на паузу — тест должен продолжать тикать
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	print("SELFTEST: старт")
 
 func _fail(msg: String) -> void:
@@ -192,20 +194,48 @@ func _physics_process(_delta: float) -> void:
 				_finish()
 				return
 			_ok("локация переключилась: улица → интерьер")
-			# мойка отмывает грязную тарелку
+			# мытьё посуды: берём грязную тарелку в руки и открываем мини-игру у мойки
 			_sink_plate = BreakableProp.make(get_tree().current_scene, "plate_dirty", Vector3.ZERO)
-			_sink_plate.global_position = _mansion.sink.global_position + Vector3(0, 1.15, 0)
-			_wait = 40
+			_sink_plate.global_position = _skel.global_position + Vector3(0, 1.0, 0)
+			_wait = 10
+			_step = 195
+		195:
+			_skel.held = _sink_plate
+			_sink_plate.freeze = true
+			_mansion.sink.interact(_skel)
+			_wait = 5
 			_step = 20
 		20:
+			var mg := get_tree().current_scene.find_children("", "DishMinigame", true, false)
+			if mg.is_empty():
+				_fail("мини-игра мытья не открылась")
+				_step = 21
+				return
+			_ok("мини-игра мытья открылась (тарелка в руках + E у мойки)")
+			(mg[0] as DishMinigame).finish_wash()
+			_wait = 10
+			_step = 205
+		205:
 			if is_instance_valid(_sink_plate) and _sink_plate.kind == "plate":
-				_ok("мойка отмыла тарелку")
+				_ok("после мини-игры тарелка чистая и осталась в руках")
 			else:
-				_fail("тарелка не отмылась в раковине")
-				print("  DIAG: plate valid=", is_instance_valid(_sink_plate),
-					" kind=", _sink_plate.kind if is_instance_valid(_sink_plate) else "-",
-					" pos=", _sink_plate.global_position if is_instance_valid(_sink_plate) else Vector3.INF,
-					" sink=", _mansion.sink.global_position)
+				_fail("тарелка не отмылась в мини-игре")
+			# аккуратная кладка: короткий клик должен поставить, а не разбить
+			_mess_before = Game.mess_points
+			_skel.held = _sink_plate
+			_sink_plate.freeze = true
+			Input.action_press("grab")
+			_wait = 2
+			_step = 206
+		206:
+			Input.action_release("grab")
+			_wait = 60
+			_step = 207
+		207:
+			if is_instance_valid(_sink_plate) and Game.mess_points == _mess_before:
+				_ok("короткий клик кладёт предмет аккуратно, не разбивая")
+			else:
+				_fail("предмет разбился при аккуратной кладке")
 			_step = 21
 		21:
 			# плита: кладём рецепт аккуратно на поверхность (по top_y) и готовим
@@ -266,6 +296,38 @@ func _physics_process(_delta: float) -> void:
 				_ok("предмет в руках переехал вместе с игроком")
 			else:
 				_fail("предмет в руках потерялся при переходе")
+			Game.main_node.switch_location("indoor", "kitchen_door")
+			_wait = 90
+			_step = 28
+		28:
+			# спуск по парадной лестнице: ставим на балкон у верхней ступени
+			_mansion = get_tree().get_first_node_in_group("mansion") as Mansion
+			_skel.respawn_at(_mansion.to_global(Vector3(-3.6, Mansion.F2 + 0.4, 5.2)))
+			_wait = 30
+			_step = 29
+		29:
+			_mark = _skel.global_position
+			Input.action_press("move_forward")
+			_wait = 200
+			_step = 30
+		30:
+			Input.action_release("move_forward")
+			var dropped: float = _mark.y - _skel.global_position.y
+			if dropped > 2.5:
+				_ok("спуск по парадной лестнице работает (−%.1f м)" % dropped)
+			else:
+				_fail("по лестнице не спуститься: перепад всего %.2f м (застрял на %.2f)" % [dropped, _skel.global_position.y])
+			_mark = _skel.global_position
+			Input.action_press("move_back")
+			_wait = 220
+			_step = 31
+		31:
+			Input.action_release("move_back")
+			var climbed: float = _skel.global_position.y - _mark.y
+			if climbed > 2.5:
+				_ok("подъём по той же лестнице работает (+%.1f м)" % climbed)
+			else:
+				_fail("подъём не работает: набрал всего %.2f м" % climbed)
 			_finish()
 
 func _finish() -> void:

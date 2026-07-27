@@ -67,6 +67,9 @@ func _ready() -> void:
 	_bubble.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_bubble.outline_size = 10
+	_bubble.no_depth_test = true      # реплика читается сквозь косяки и мебель
+	_bubble.render_priority = 12
+	_bubble.outline_render_priority = 11
 	_bubble.visible = false
 	add_child(_bubble)
 
