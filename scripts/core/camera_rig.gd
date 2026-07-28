@@ -84,3 +84,7 @@ func right() -> Vector3:
 ## Направление броска — куда смотрит сама камера (с учётом наклона).
 func aim() -> Vector3:
 	return -_cam.global_transform.basis.z
+
+## Откуда смотрит камера — начало луча прицеливания.
+func cam_origin() -> Vector3:
+	return _cam.global_position

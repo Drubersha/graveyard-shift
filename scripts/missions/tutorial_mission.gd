@@ -24,10 +24,10 @@ var _beacon: MeshInstance3D
 
 func _ready() -> void:
 	# «дым» цели: столб всегда стоит НА полу цели и тянется вверх
-	_beacon = MeshLib.cylinder(self, 0.4, 3.0, Vector3.ZERO, MeshLib.ACCENT)
+	_beacon = MeshLib.cylinder(self, 0.22, 3.0, Vector3.ZERO, MeshLib.ACCENT)
 	var m := MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.albedo_color.a = 0.18
+	m.albedo_color.a = 0.11
 	_beacon.material_override = m
 	_beacon.visible = false
 

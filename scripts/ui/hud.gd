@@ -129,6 +129,14 @@ func _physics_process(_delta: float) -> void:
 	# промпт ближайшего интерактива (рейкаст видимости — только в physics-тике)
 	_prompt.text = ""
 	var possessed := Game.possessed
+	# что под прицелом: подпись предмета, который возьмёшь по ЛКМ
+	var skel_aim := Game.player_skeleton as SkeletonPlayer
+	if skel_aim and Game.is_possessed(skel_aim) and not is_instance_valid(skel_aim.held):
+		var target := Game.aimed(skel_aim, "grabbable", SkeletonPlayer.GRAB_RANGE)
+		if target and target.has_meta("item_label"):
+			_item_label.text = "Взять: " + str(target.get_meta("item_label"))
+		else:
+			_item_label.text = ""
 	if is_instance_valid(possessed):
 		var best_d := 2.4  # = INTERACT_RANGE скелета
 		var best: Node = null

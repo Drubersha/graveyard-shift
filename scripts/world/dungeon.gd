@@ -93,7 +93,6 @@ func _stairs_up(base: Vector3, prompt: String, spawn_id_up: String, spawn_id_her
 	glow.omni_range = 5.0
 	glow.light_energy = 1.0
 	add_child(glow)
-	MeshLib.label(self, "▲", Vector3(base.x, 2.1, base.z - 0.4), 56, MeshLib.ACCENT)
 
 func _torch(pos: Vector3, rot_y := 0.0) -> void:
 	ModelLib.visual(self, "Torch_Metal", pos, rot_y)

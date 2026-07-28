@@ -476,8 +476,8 @@ func _potion_room() -> void:
 	brew.material_override = MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)
 	ModelLib.solid(self, "Shelf_Small_Bottles", Vector3(21.2, FLOOR_Y, -7.6), -90)
 	ModelLib.solid(self, "Shelf_Simple", Vector3(21.2, FLOOR_Y + 1.3, -3.0), -90)
-	for pdata in [["Potion_1.gltf", Vector3(16.4, FLOOR_Y, -8.6)], ["Potion_2.gltf", Vector3(16.9, FLOOR_Y, -8.9)],
-			["Potion_4.gltf", Vector3(21.0, FLOOR_Y + 1.45, -3.0)]]:
+	for pdata in [["Potion_1", Vector3(16.4, FLOOR_Y, -8.6)], ["Potion_2", Vector3(16.9, FLOOR_Y, -8.9)],
+			["Potion_4", Vector3(21.0, FLOOR_Y + 1.45, -3.0)]]:
 		ModelLib.grab(self, pdata[0] as String, pdata[1] as Vector3, 1.0)
 	ModelLib.solid(self, "Barrel", Vector3(16.2, FLOOR_Y, -1.4), 0)
 	ModelLib.grab(self, "Bucket_Wooden_1", Vector3(20.4, FLOOR_Y, -9.2), 2.0)
@@ -574,8 +574,8 @@ func _library() -> void:
 	ModelLib.solid(self, "Shelf_Large", Vector3(17.0, F2 + 1.6, 9.7), 180, HS)
 	ModelLib.solid(self, "BookStand", Vector3(15.6, F2, 4.4), 160)
 	ModelLib.solid(self, "ChairHandle", Vector3(8.6, F2, 4.6), 45, FS)
-	for bdata in [["Book_Stack_1.gltf", Vector3(13.4, F2, 9.2)], ["BookGroup_Medium_1.gltf", Vector3(19.6, F2, 9.3)],
-			["Book_Stack_2.gltf", Vector3(8.2, F2, 6.4)], ["BookGroup_Small_1.gltf", Vector3(20.8, F2, 3.6)]]:
+	for bdata in [["Book_Stack_1", Vector3(13.4, F2, 9.2)], ["BookGroup_Medium_1", Vector3(19.6, F2, 9.3)],
+			["Book_Stack_2", Vector3(8.2, F2, 6.4)], ["BookGroup_Small_1", Vector3(20.8, F2, 3.6)]]:
 		ModelLib.grab(self, bdata[0] as String, bdata[1] as Vector3, 1.0)
 	_satanic_circle(Vector3(15.6, F2 + 0.02, 7.0), 2.4)
 	ModelLib.visual(self, "Light_Ceiling2", Vector3(15.6, CEIL - 0.05, 7.0), 0, HS)
@@ -689,8 +689,6 @@ func _shaft(r: Rect2, prompt: String, spawn_id: String) -> void:
 			"stone_light.png", Color(0.45, 0.45, 0.5), 0.4, Vector3(angle, 0, 0))
 	# ограждение только по дальнему краю, вход остаётся свободным
 	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 0.95, 0.12), Vector3(cx, FLOOR_Y + 0.48, z1 + 0.25), MeshLib.WOOD_DARK)
-	# табличка и портал внизу
-	MeshLib.label(self, "▼", Vector3(cx, FLOOR_Y + 1.3, z0 - 0.3), 64, MeshLib.ACCENT)
 	var p := Portal.make(self, Vector3(cx, SHAFT_BOTTOM + 0.2, z1 - 0.5), prompt, "cellar", spawn_id)
 	portals.append(p)
 	var glow := OmniLight3D.new()

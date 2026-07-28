@@ -14,8 +14,8 @@ const JUMP := 4.6
 const PUSH_FORCE := 1.6
 const SHOCK_LIMIT := 7.5           # резкая смена скорости (м/с) → рассыпание
 const REASSEMBLE_COOLDOWN := 4.0
-const GRAB_RANGE := 2.4
-const INTERACT_RANGE := 2.4
+const GRAB_RANGE := 3.4      # рука у скелета длинная, а прицел — ещё длиннее
+const INTERACT_RANGE := 3.2
 const THROW_MIN := 4.0
 const THROW_MAX := 15.0
 
@@ -233,17 +233,21 @@ func _handle_actions(delta: float) -> void:
 func _hold_point() -> Vector3:
 	return global_position + -_visual.global_transform.basis.z * 0.9 + Vector3.UP * 1.1
 
+## Берём то, на что смотрит прицел; если прицел мимо — ближайшее в радиусе руки.
 func _try_grab() -> void:
-	var best: RigidBody3D = null
-	var best_d := GRAB_RANGE
-	for node in get_tree().get_nodes_in_group("grabbable"):
-		var rb := node as RigidBody3D
-		if not rb or rb.mass > 25.0:
-			continue
-		var d := rb.global_position.distance_to(_hold_point())
-		if d < best_d and Game.has_line_of_sight(self, rb):
-			best_d = d
-			best = rb
+	var best := Game.aimed(self, "grabbable", GRAB_RANGE) as RigidBody3D
+	if best and best.mass > 25.0:
+		best = null
+	if best == null:
+		var best_d := GRAB_RANGE
+		for node in get_tree().get_nodes_in_group("grabbable"):
+			var rb := node as RigidBody3D
+			if not rb or rb.mass > 25.0:
+				continue
+			var d := rb.global_position.distance_to(global_position)
+			if d < best_d and Game.has_line_of_sight(self, rb):
+				best_d = d
+				best = rb
 	if best:
 		_take(best)
 		Game.hint("Короткий клик ЛКМ — поставить аккуратно. Держать и отпустить — швырнуть.")
@@ -320,6 +324,10 @@ func _try_interact() -> void:
 		target.interact(self)
 
 func nearest_interactable(range_: float) -> Node:
+	# сначала то, во что целишься, потом — ближайшее вокруг
+	var aimed := Game.aimed(self, "interactable", range_)
+	if aimed and aimed.has_method("interact"):
+		return aimed
 	var best: Node = null
 	var best_d := range_
 	for node in get_tree().get_nodes_in_group("interactable"):

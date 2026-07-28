@@ -103,6 +103,30 @@ func add_mess(value: int) -> void:
 func hint(text: String) -> void:
 	hint_shown.emit(text)
 
+## На что смотрит прицел: луч из камеры сквозь центр экрана.
+## Возвращает узел из группы `group`, если он в пределах `reach` от актёра.
+func aimed(actor: Node3D, group: String, reach: float, ray_len := 9.0) -> Node3D:
+	var rig := camera_rig as CameraRig
+	if rig == null or not is_instance_valid(actor):
+		return null
+	var space := actor.get_world_3d().direct_space_state
+	var from := rig.cam_origin()
+	var params := PhysicsRayQueryParameters3D.create(from, from + rig.aim() * ray_len, 1)
+	var exclude: Array[RID] = []
+	if actor is CollisionObject3D:
+		exclude.append((actor as CollisionObject3D).get_rid())
+	params.exclude = exclude
+	var hit := space.intersect_ray(params)
+	if hit.is_empty():
+		return null
+	var node: Node = hit["collider"]
+	while node != null and not node.is_in_group(group):
+		node = node.get_parent()
+	if node == null or not node is Node3D:
+		return null
+	var target := node as Node3D
+	return target if target.global_position.distance_to(actor.global_position) <= reach else null
+
 ## Есть ли прямая видимость от актёра до интерактива (чтобы не жать рычаги сквозь стены).
 ## Разрешаем, если луч ничего не задел, задел сам таргет/его потомка,
 ## или точка попадания вплотную к таргету (рычаг на стене, снап на скамейке).

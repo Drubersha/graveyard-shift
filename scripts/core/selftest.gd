@@ -345,6 +345,31 @@ func _physics_process(_delta: float) -> void:
 				_ok("спуск в подвал по пандусу работает (−%.1f м)" % down)
 			else:
 				_fail("в подвал не спуститься: перепад %.2f м, застрял на y=%.2f" % [down, _skel.global_position.y])
+			# подбор с дистанции: тарелка в 2.6 м, брать нужно не вплотную
+			_skel.respawn_at(_mansion.to_global(Vector3(-12.0, 0.5, 7.0)))
+			# оставляем в сцене ровно один хватаемый предмет — иначе тест возьмёт чужой
+			for n in get_tree().get_nodes_in_group("grabbable"):
+				(n as Node).queue_free()
+			_sink_plate = BreakableProp.make(get_tree().current_scene, "plate_dirty", Vector3.ZERO)
+			_sink_plate.global_position = _skel.global_position + Vector3(0, -0.22, -2.6)
+			_wait = 25
+			_step = 34
+		34:
+			_skel.held = null
+			_skel.call("_try_grab")
+			_wait = 5
+			_step = 35
+		35:
+			if _skel.held == _sink_plate:
+				_ok("предмет берётся с расстояния (2.6 м), а не вплотную")
+			else:
+				_fail("не удалось взять предмет с 2.6 м")
+				print("  DIAG: valid=", is_instance_valid(_sink_plate),
+					" skel=", _skel.global_position,
+					" plate=", _sink_plate.global_position if is_instance_valid(_sink_plate) else Vector3.INF,
+					" dist=", _skel.global_position.distance_to(_sink_plate.global_position) if is_instance_valid(_sink_plate) else -1,
+					" los=", Game.has_line_of_sight(_skel, _sink_plate) if is_instance_valid(_sink_plate) else false,
+					" state=", _skel.state, " held=", _skel.held)
 			_finish()
 
 func _finish() -> void:
