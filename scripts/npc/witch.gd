@@ -124,9 +124,9 @@ func _load_model(path: String) -> void:
 	_holders.clear()
 	_hat_root = null
 	_broom = null
-	# Meshy экспортирует уже по конвенции Godot (лицо в -Z), разворот не нужен:
-	# с ним ведьма сидела к гостям спиной, а посадка промахивалась на два смещения
-	_model = ModelLib.visual(self, path, Vector3.ZERO, 0.0, MODEL_SCALE_MESHY)
+	# Модель Meshy смотрит в +Z (подтверждено кадрами и костью headfront), а в
+	# Godot «вперёд» — это -Z: без разворота она стояла и сидела к игроку спиной.
+	_model = ModelLib.visual(self, path, Vector3.ZERO, 180.0, MODEL_SCALE_MESHY)
 	# Скинованный меш при таком масштабе выпадает из своего же AABB, и Godot
 	# отбрасывает его отсечением: модель есть в дереве, кости считаются, а в кадре
 	# пусто. Запас отсечения лечит ровно это.
@@ -396,9 +396,10 @@ func hips_bone_world_position() -> Vector3:
 ## probe_witch.gd (--witchprobe), поза SitIdle: кость Hips стоит в
 ## (-0.002, 0.577, -0.029) от корня ведьмы.
 ## Meshy, поза Chair_Sit_Idle_F (probe_meshy_witch.gd, кости × BONE_FIX):
-## таз стоит в (0.273, 0.654, -0.715) от корня — анимация уводит тело назад от
-## origin, и без этого смещения посадка промахивается почти на метр.
-const SIT_HIPS := Vector3(0.273, 0.654, -0.715)
+## в системе МОДЕЛИ таз стоит в (0.273, 0.654, -0.715) — анимация уводит тело от
+## origin. Визуал развёрнут на 180° (лицо модели в +Z), поэтому в системе САМОЙ
+## ведьмы X и Z меняют знак.
+const SIT_HIPS := Vector3(-0.273, 0.654, 0.715)
 ## Полувысота таза — отсюда НИЗ таза на 0.577 - 0.133 = 0.444 над корнем.
 const PELVIS_HALF_H := 0.133
 ## Полуглубина таза — probe_woman_uv.gd: кость Hips даёт Z -0.166..0.124.
@@ -412,6 +413,23 @@ const PELVIS_HALF_Z := 0.166
 ## Meshy: LeftUpLeg (0.324, 0.577, -0.703) → LeftLeg (0.247, 0.466, -0.425),
 ## расстояние 0.31 м — на столько колено уходит вперёд от таза в сидячей позе.
 const THIGH_LEN := 0.31
+
+## Куда реально смотрит МОДЕЛЬ (не узел) — по костям Head → headfront.
+## Именно эта пара ловит «сидит задом»: узел может быть повёрнут правильно,
+## а меш внутри — наоборот, и проверка по basis узла этого не видит.
+func model_face_dir() -> Vector3:
+	var skel := _find_skeleton(_model)
+	if skel == null:
+		return -global_transform.basis.z
+	var h := skel.find_bone("Head")
+	var f := skel.find_bone("headfront")
+	if h < 0 or f < 0:
+		return -global_transform.basis.z
+	var hp := skel.global_transform * (skel.get_bone_global_pose(h).origin * BONE_FIX)
+	var fp := skel.global_transform * (skel.get_bone_global_pose(f).origin * BONE_FIX)
+	var d := fp - hp
+	d.y = 0.0
+	return d.normalized() if d.length() > 0.001 else -global_transform.basis.z
 
 ## Ступня — для проверок: у позы «сидя на стуле» колени остаются над подушкой,
 ## а вниз уходит голень, поэтому в мебели тонуть могут именно стопы.

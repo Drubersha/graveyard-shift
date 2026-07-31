@@ -72,6 +72,13 @@ func _check_witch() -> void:
 			_fail("ведьма не человеческого роста: %.2f м по костям" % h)
 		else:
 			_ok("модель ведьмы видима, рост %.2f м" % h)
+		# «сидит задом»: узел повёрнут верно, а меш внутри — наоборот. Ловим по
+		# кости лица: headfront обязан быть с той же стороны, куда смотрит узел.
+		var face_dot := w.model_face_dir().dot(-w.global_transform.basis.z)
+		if face_dot > 0.5:
+			_ok("модель смотрит туда же, куда узел (dot %.2f)" % face_dot)
+		else:
+			_fail("модель развёрнута задом к направлению узла (dot %.2f)" % face_dot)
 	var d := w.hat_world_position().distance_to(w.head_bone_world_position())
 	if d > HAT_TO_HEAD_MAX:
 		_fail("шляпа оторвалась от головы: %.2f м до кости в позе «%s»" % [d, w.state])
