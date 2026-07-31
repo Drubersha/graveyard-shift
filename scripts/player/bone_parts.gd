@@ -43,12 +43,14 @@ const MODEL := {
 # ЦЕНТРЕ AABB, высота нормирована к ~1.9, фронт +Z (у тела фронт -Z → разворот
 # на 180). Текстуры свои — reskin к ним НЕ применяется. Нога левая — в штанине,
 # правая — голая кость: гардероб подъедала моль, вопросы к ведьме.
-# Записи: [путь, size_y, min_y сырого AABB, целевая высота, якорь].
+# Записи: [путь, size_y, min_y сырого AABB, целевая высота, якорь, rot_x].
 # Якорь: "center" — origin детали в центре модели (череп);
 # "bottom" — низ модели на origin (торс: origin в основании таза);
 # "top" — верх модели на origin (рука/нога: origin в суставе сверху).
+# rot_x — доворот вокруг X: череп Meshy сгенерён ЛЁЖА (глазницы вверх, ширина
+# больше высоты) — ставим стоймя; после поворота вертикаль — это сырой Z (1.859).
 const MESHY := {
-	"skull": ["res://assets/models/147_Bones_Skull.glb", 1.541, -0.768, 0.34, "center"],
+	"skull": ["res://assets/models/147_Bones_Skull.glb", 1.859, -0.9295, 0.34, "center", -90.0],
 	"torso": ["res://assets/models/148_Bones_Torso.glb", 1.877, -0.950, 0.78, "bottom"],
 	"arm_l": ["res://assets/models/149_Bones_ArmL.glb", 1.895, -0.949, 0.77, "top"],
 	"arm_r": ["res://assets/models/150_Bones_ArmR.glb", 1.897, -0.950, 0.77, "top"],
@@ -90,7 +92,7 @@ static func build(parent: Node, id: String) -> Node3D:
 		root.add_child(inst)
 		var sc: float = m[3] / float(m[1])
 		inst.scale = Vector3.ONE * sc
-		inst.rotation_degrees.y = 180.0
+		inst.rotation_degrees = Vector3(m[5] if m.size() > 5 else 0.0, 180.0, 0.0)
 		var min_y: float = m[2]
 		match m[4]:
 			"bottom":

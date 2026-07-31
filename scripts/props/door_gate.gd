@@ -10,6 +10,9 @@ var locked_hint := "Заперто."
 var is_open := false
 var prompt := "Открыть дверь"
 var swing := 105.0
+# Дверь-портал: не распахивается, а передаёт интеракт порталу (смена локации).
+# Ставится в проёмы наружу — иначе в проёме видно небо сквозь дырку в стене.
+var portal_link: Portal = null
 
 var _panel: StaticBody3D
 var _width := 0.9
@@ -93,11 +96,16 @@ func _build(color: Color) -> void:
 		vis.position -= Vector3(box.position.x, box.position.y, box.position.z + box.size.z / 2.0)
 
 func get_prompt() -> String:
+	if portal_link:
+		return portal_link.prompt
 	if locked:
 		return locked_hint
 	return "Закрыть дверь" if is_open else prompt
 
-func interact(_by: Node) -> void:
+func interact(by: Node) -> void:
+	if portal_link:
+		portal_link.interact(by)
+		return
 	if locked:
 		Game.hint(locked_hint)
 		return

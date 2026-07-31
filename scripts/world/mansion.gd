@@ -27,8 +27,11 @@ const HALL_HX := 7.0    # полуширина парадного зала
 const WING_X := 15.0    # внутренняя перегородка крыла
 
 const BACK_DOOR_X := -11.0
-const SHAFT_W := Rect2(-10.6, 1.2, 2.6, 4.6)   # спуск в подвал: кухня
-const SHAFT_E := Rect2(8.0, 1.2, 2.6, 4.6)     # спуск в подвал: зал шабаша
+# Спуски в подвал — вертикальные колодцы: просто дырка в полу со стремянкой
+# на стенке (пандусы убраны по просьбе игрока). Падение с 2 м даёт ~6.3 м/с —
+# ниже порога отрыва деталей 8.0, скелет спрыгивает целым.
+const SHAFT_W := Rect2(-10.2, 2.2, 1.8, 1.8)   # дыра в полу кухни
+const SHAFT_E := Rect2(8.4, 2.2, 1.8, 1.8)     # дыра в полу зала шабаша
 const SHAFT_BOTTOM := -1.8
 
 const HS := ModelLib.HOUSE_SCALE
@@ -45,6 +48,7 @@ const NECRO := {
 	"door_in": ["res://assets/models/144_Necro_InteriorDoor.glb", Vector3(1.001, 1.899, 0.159)],
 	"chandelier": ["res://assets/models/145_Necro_Chandelier.glb", Vector3(1.807, 1.897, 1.574)],
 	"sconce": ["res://assets/models/146_Necro_Sconce.glb", Vector3(0.629, 1.899, 1.138)],
+	"wall_clock": ["res://assets/models/153_Necro_WallClock.glb", Vector3(1.604, 1.899, 0.231)],
 }
 
 func necro_path(key: String) -> String:
@@ -115,8 +119,13 @@ func _ready() -> void:
 	if mode == "exterior":
 		_exterior()
 		spawns["back_porch"] = Vector3(BACK_DOOR_X, FLOOR_Y + 0.2, HZ + 2.2)
-		portals.append(Portal.make(self, Vector3(BACK_DOOR_X, FLOOR_Y, HZ + 0.7),
-			"Войти в особняк", "indoor", "kitchen_door"))
+		var enter := Portal.make(self, Vector3(BACK_DOOR_X, FLOOR_Y, HZ + 0.7),
+			"Войти в особняк", "indoor", "kitchen_door")
+		portals.append(enter)
+		# створка в проёме: E по ней грузит интерьер, дырка не сквозит небом
+		var leaf_out := DoorGate.make_glb(self, Vector3(BACK_DOOR_X - 0.9, FLOOR_Y, HZ), 0.0,
+			1.8, DOOR_H, necro_path("door_in"), NECRO["door_in"][1])
+		leaf_out.portal_link = enter
 		_witch_meet()
 		return
 	_floors()
@@ -149,8 +158,13 @@ func _ready() -> void:
 	spawns["kitchen_door"] = Vector3(BACK_DOOR_X, FLOOR_Y + 0.2, HZ - 1.6)
 	spawns["kitchen_stairs"] = Vector3(SHAFT_W.position.x + SHAFT_W.size.x / 2.0, FLOOR_Y + 0.2, SHAFT_W.position.y - 1.2)
 	spawns["sabbath_stairs"] = Vector3(SHAFT_E.position.x + SHAFT_E.size.x / 2.0, FLOOR_Y + 0.2, SHAFT_E.position.y - 1.2)
-	portals.append(Portal.make(self, Vector3(BACK_DOOR_X, FLOOR_Y, HZ - 0.55),
-		"Выйти во двор", "outdoor", "back_porch"))
+	var exit_p := Portal.make(self, Vector3(BACK_DOOR_X, FLOOR_Y, HZ - 0.55),
+		"Выйти во двор", "outdoor", "back_porch")
+	portals.append(exit_p)
+	# чёрный ход закрыт дверью-порталом: E по створке сразу грузит двор
+	var leaf_in := DoorGate.make_glb(self, Vector3(BACK_DOOR_X - 0.9, FLOOR_Y, HZ), 0.0,
+		1.8, DOOR_H, necro_path("door_in"), NECRO["door_in"][1])
+	leaf_in.portal_link = exit_p
 
 func _materials() -> void:
 	_mat_floor1 = ModelLib.pbr_mat("Mahogany_Planks", Color(0.85, 0.8, 0.78), 0.35)
@@ -237,10 +251,10 @@ func _wall_row_z(x: float, z0: float, z1: float, y0: float, h: float, openings :
 ## мётел без наборов. Полоса старого пола в дверных проёмах читается как порожек.
 func _room_skins() -> void:
 	# --- этаж 1: полы
-	_skin_floor("kitchen", -14.85, 0.15, -7.15, 1.2, FLOOR_Y)
-	_skin_floor("kitchen", -14.85, 1.2, -10.6, 5.8, FLOOR_Y)
-	_skin_floor("kitchen", -8.0, 1.2, -7.15, 5.8, FLOOR_Y)
-	_skin_floor("kitchen", -14.85, 5.8, -7.15, 9.8, FLOOR_Y)
+	_skin_floor("kitchen", -14.85, 0.15, -7.15, 2.2, FLOOR_Y)
+	_skin_floor("kitchen", -14.85, 2.2, -10.2, 4.0, FLOOR_Y)
+	_skin_floor("kitchen", -8.4, 2.2, -7.15, 4.0, FLOOR_Y)
+	_skin_floor("kitchen", -14.85, 4.0, -7.15, 9.8, FLOOR_Y)
 	_skin_floor("dining", -21.8, 0.15, -15.15, 9.8, FLOOR_Y)
 	_skin_floor("sewing", -21.8, -9.8, -15.15, -0.15, FLOOR_Y)
 	_skin_floor("bathroom", -14.85, -9.8, -11.65, -7.15, FLOOR_Y)
@@ -616,16 +630,21 @@ func _kitchen() -> void:
 	sink.rotation_degrees = Vector3(0, -90, 0)
 	sink.zone_y_override = 0.03   # чаша ~0.85 над полом, кран в AABB выше
 	add_child(sink)
-	# 4 напольных шкафа вдоль задней (северной) стены по бокам от чёрного хода
-	_necro_solid("cabinet", -13.62, 9.573, 180, 1.0)
-	_necro_solid("cabinet", -12.47, 9.573, 180, 1.0)
+	# 4 напольных шкафа: по одному с каждой стороны чёрного хода у северной
+	# стены (ледник в углу больше не зажат — от него до тумбы 0.2 м), ещё один
+	# у северной стены восточнее и один на западной стене южнее проёма столовой
+	_necro_solid("cabinet", -13.5, 9.573, 180, 1.0)
 	_necro_solid("cabinet", -9.5, 9.573, 180, 1.0)
 	_necro_solid("cabinet", -8.35, 9.573, 180, 1.0)
-	# 6 навесных: над напольными, над мойкой и на глухом куске южной стены
-	for wx: float in [-13.62, -12.47, -9.5, -8.35]:
-		_necro_at("wall_cab", Vector3(wx, 2.0, 9.705), 180, 0.9)
-	_necro_at("wall_cab", Vector3(-14.755, 2.0, 6.6), -90, 0.9)
-	_necro_at("wall_cab", Vector3(-9.0, 2.0, 0.245), 0, 0.9)
+	_necro_solid("cabinet", -14.62, 1.5, 90, 1.0)
+	# 6 навесных (высота 1.15 — мелкие терялись на трёхметровой стене):
+	# над напольными, над мойкой и на глухом куске южной стены.
+	# Фронт модели +Z: на западной стене yaw +90 (фронт на восток, в комнату).
+	for wx: float in [-13.5, -9.5, -8.35]:
+		_necro_at("wall_cab", Vector3(wx, 2.05, 9.68), 180, 1.15)
+	_necro_at("wall_cab", Vector3(-14.73, 2.05, 6.6), 90, 1.15)
+	_necro_at("wall_cab", Vector3(-14.73, 2.05, 1.5), 90, 1.15)
+	_necro_at("wall_cab", Vector3(-9.0, 2.05, 0.27), 0, 1.15)
 	# межкомнатные двери в трёх проёмах; распахиваются туда, где нет мебели:
 	# коридорная — в кухню (свободный угол у часов), столовая — в столовую,
 	# зальная — в зал (в кухне рядом ограждение подвальной шахты)
@@ -642,12 +661,10 @@ func _kitchen() -> void:
 		var d := DustPatch.make(self, dust_spots[i], 0.55)
 		d.id = i
 		dust_list.append(d)
-	# Настенные часы на глухом простенке z=0 западнее прохода в коридор.
-	# Промеры: панель _wall_row_x(z=0) сплошная при x -22..-13, y 0.2..3.4;
-	# часы занимают x -14.16..-13.64, y 1.94..2.46 — до края проёма 0.64 м.
-	# Створ коридорной двери (петля x=-13, свинг -105) до часов не достаёт:
-	# от петли до ближнего угла часов 0.66 м по направлению за пределами дуги.
-	_wall_clock(Vector3(-13.9, FLOOR_Y + 2.0, 0.155))
+	# Настенные часы (некро-модель) на глухом простенке z=0 западнее прохода
+	# в коридор: панель сплошная при x -14.85..-13, часы 0.72 шириной по центру.
+	# Створ коридорной двери (петля x=-13, свинг -105) до них не достаёт.
+	_necro_at("wall_clock", Vector3(-13.9, 2.2, 0.2), 0, 0.85, false)
 	# люстра в центре комнаты + два бра на глухих простенках юга и востока
 	_necro_at("chandelier", Vector3(-11.0, SLAB_BOT - 0.475, 5.0), 0, 0.85, false)
 	_lamp(Vector3(-11.0, 2.65, 5.0), Color(1.0, 0.8, 0.55), 10.0, 1.1)
@@ -973,40 +990,35 @@ func _shafts() -> void:
 	_shaft(SHAFT_W, "Спуститься в винный погреб", "from_kitchen")
 	_shaft(SHAFT_E, "Спуститься в подземелье", "from_sabbath")
 
+## Вертикальный колодец: дырка в полу, четыре каменные стенки вниз, дно,
+## стремянка на северной стенке. Спуск — спрыгнуть (2 м не ломают скелета),
+## наверх возвращает портал подвала, как и раньше.
 func _shaft(r: Rect2, prompt: String, spawn_id: String) -> void:
 	var x0 := r.position.x
 	var x1 := r.position.x + r.size.x
 	var z0 := r.position.y
 	var z1 := r.position.y + r.size.y
 	var cx := (x0 + x1) / 2.0
-	# стены шахты и площадка внизу
-	MeshLib.solid_box(self, Vector3(0.25, 2.4, r.size.y + 0.5), Vector3(x0 - 0.1, SHAFT_BOTTOM + 1.2, (z0 + z1) / 2.0), MeshLib.STONE_DARK)
-	MeshLib.solid_box(self, Vector3(0.25, 2.4, r.size.y + 0.5), Vector3(x1 + 0.1, SHAFT_BOTTOM + 1.2, (z0 + z1) / 2.0), MeshLib.STONE_DARK)
-	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 2.4, 0.25), Vector3(cx, SHAFT_BOTTOM + 1.2, z1 + 0.1), MeshLib.STONE_DARK)
-	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 0.3, 2.0), Vector3(cx, SHAFT_BOTTOM - 0.15, z1 + 1.0), MeshLib.STONE)
-	# спуск — цельный каменный пандус: по нему и сходят, и поднимаются без порогов
-	var run := r.size.y
-	var rise := FLOOR_Y - SHAFT_BOTTOM
-	var angle := rad_to_deg(atan2(rise, run))
-	var slope := sqrt(run * run + rise * rise)
-	var thick := 0.4
-	var ramp := ModelLib.tex_solid_box(self, Vector3(r.size.x, thick, slope + 1.4),
-		Vector3(cx, (FLOOR_Y + SHAFT_BOTTOM) / 2.0 - (thick / 2.0) / cos(deg_to_rad(angle)), (z0 + z1) / 2.0),
-		"stone_light.png", Color(0.6, 0.6, 0.66), 0.4, Vector3(angle, 0, 0))
-	ramp.name = "CellarRamp"
-	# насечки-ступени поверх пандуса (визуал, ходьбе не мешают)
-	for i in 9:
-		var frac := (i + 0.5) / 9.0
-		ModelLib.tex_box(self, Vector3(r.size.x - 0.1, 0.05, 0.1),
-			Vector3(cx, FLOOR_Y - frac * rise + 0.14, z0 + frac * run),
-			"stone_light.png", Color(0.45, 0.45, 0.5), 0.4, Vector3(angle, 0, 0))
-	# ограждение только по дальнему краю, вход остаётся свободным
-	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 0.95, 0.12), Vector3(cx, FLOOR_Y + 0.48, z1 + 0.25), MeshLib.WOOD_DARK)
-	var p := Portal.make(self, Vector3(cx, SHAFT_BOTTOM + 0.2, z1 - 0.5), prompt, "cellar", spawn_id)
+	var cz := (z0 + z1) / 2.0
+	var depth := FLOOR_Y - SHAFT_BOTTOM
+	var wall_cy := SHAFT_BOTTOM + depth / 2.0
+	MeshLib.solid_box(self, Vector3(0.25, depth, r.size.y + 0.5), Vector3(x0 - 0.1, wall_cy, cz), MeshLib.STONE_DARK)
+	MeshLib.solid_box(self, Vector3(0.25, depth, r.size.y + 0.5), Vector3(x1 + 0.1, wall_cy, cz), MeshLib.STONE_DARK)
+	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, depth, 0.25), Vector3(cx, wall_cy, z1 + 0.1), MeshLib.STONE_DARK)
+	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, depth, 0.25), Vector3(cx, wall_cy, z0 - 0.1), MeshLib.STONE_DARK)
+	# дно колодца
+	MeshLib.solid_box(self, Vector3(r.size.x + 0.5, 0.3, r.size.y + 0.5), Vector3(cx, SHAFT_BOTTOM - 0.15, cz), MeshLib.STONE)
+	# стремянка на северной стенке: две стойки и перекладины от дна до кромки
+	for sx: float in [cx - 0.35, cx + 0.35]:
+		MeshLib.box(self, Vector3(0.06, depth + 0.25, 0.06), Vector3(sx, wall_cy + 0.12, z1 - 0.09), MeshLib.WOOD_DARK)
+	var rungs := int(depth / 0.3)
+	for i in rungs:
+		MeshLib.box(self, Vector3(0.76, 0.05, 0.07), Vector3(cx, SHAFT_BOTTOM + 0.25 + i * 0.3, z1 - 0.1), MeshLib.WOOD_DARK)
+	var p := Portal.make(self, Vector3(cx, SHAFT_BOTTOM + 0.2, cz), prompt, "cellar", spawn_id)
 	portals.append(p)
 	var glow := OmniLight3D.new()
-	glow.position = Vector3(cx, SHAFT_BOTTOM + 1.0, z1 - 0.4)
-	glow.light_color = Color(1.0, 0.62, 0.3)   # факельный отсвет снизу, не радуга на ступенях
+	glow.position = Vector3(cx, SHAFT_BOTTOM + 1.2, cz)
+	glow.light_color = Color(1.0, 0.62, 0.3)   # факельный отсвет из колодца
 	glow.omni_range = 3.5
 	glow.light_energy = 1.0
 	add_child(glow)
