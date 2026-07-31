@@ -42,11 +42,11 @@ func _load_location(target: String, spawn_id: String) -> void:
 	# скелет собирается, забирает руку и прихватывает ношу — ничего не должно
 	# остаться в выгружаемой локации
 	if is_instance_valid(skeleton):
-		if skeleton.state == SkeletonPlayer.State.SHATTERED:
-			skeleton.force_reassemble()
-		if not skeleton.arm_attached:
-			skeleton.reattach_arm()
-			Game.hint("Рука сама нашлась. Не задавай вопросов.")
+		var was_broken := skeleton.state == SkeletonPlayer.State.SHATTERED \
+			or skeleton.parts_missing() > 0
+		skeleton.force_reassemble()   # кости и отбитые детали не остаются в старой локации
+		if was_broken:
+			Game.hint("Всё, что отвалилось, само нашлось по дороге. Не задавай вопросов.")
 		_carried = skeleton.held if is_instance_valid(skeleton.held) else null
 		if _carried:
 			skeleton.held = null
@@ -119,12 +119,18 @@ func _build_environment() -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = MeshLib.NIGHT_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.45, 0.42, 0.6)
-	env.ambient_light_energy = 0.6
+	# холодный обесцвеченный ambient: тени уходят почти в чёрное, силуэт читается
+	# формой, а не яркостью (ориентир — Lethal Company / Content Warning)
+	env.ambient_light_color = Color(0.30, 0.33, 0.42)
+	env.ambient_light_energy = 0.42
 	env.fog_enabled = true
 	env.fog_light_color = MeshLib.FOG_COLOR
 	env.fog_density = 0.012
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	# приглушённая палитра и жёсткий контраст: цвет сдержаннее, тени глубже
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 0.72
+	env.adjustment_contrast = 1.12
 	we.environment = env
 	add_child(we)
 	var moon_light := DirectionalLight3D.new()

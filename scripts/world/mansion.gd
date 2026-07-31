@@ -44,6 +44,8 @@ var pantry_lever: Lever
 var vent_marker: Node3D
 var witch: WitchNPC
 var couch_marker: Node3D
+var couch_body: StaticBody3D   # сам диван: по его геометрии считается посадка
+var couch_seat: Dictionary     # ModelLib.seat_spot — точка подушки, поворот, зазор
 var meet_marker: Node3D
 var sink: SinkCounter
 var stove: Stove
@@ -163,6 +165,53 @@ func _candle(parent: Node, pos: Vector3, size := 0.16) -> void:
 	MeshLib.cylinder(parent, 0.035, size, pos + Vector3(0, size / 2.0, 0), MeshLib.BONE)
 	var flame := MeshLib.sphere(parent, 0.028, pos + Vector3(0, size + 0.04, 0), Color(1.0, 0.8, 0.4), 1.4)
 	flame.material_override = MeshLib.mat(Color(1.0, 0.8, 0.4), 1.0, 0.0, Color(1.0, 0.7, 0.3))
+
+## Настенные часы: тёмный круглый корпус, светлый циферблат, часовая и минутная
+## стрелки. Собираются лицом в +Z и разворачиваются rot_y; pos — точка на стене,
+## корпус растёт от неё наружу. Чистый визуал без коллизии: болванка на высоте
+## двух метров ничего не должна ловить (веник, брошенный череп, летящую тарелку).
+func _wall_clock(pos: Vector3, rot_y := 0.0, radius := 0.26) -> Node3D:
+	var clock := Node3D.new()
+	clock.name = "WallClock"
+	clock.position = pos
+	clock.rotation_degrees = Vector3(0, rot_y, 0)
+	add_child(clock)
+	var dark := MeshLib.HOUSE_TRIM
+	var gold := Color(0.82, 0.68, 0.34)
+	# корпус-обод: задняя грань в точке pos, вперёд на 0.09
+	MeshLib.cylinder(clock, radius, 0.09, Vector3(0, 0, 0.045), MeshLib.WOOD_DARK, Vector3(90, 0, 0))
+	# циферблат — чуть выступает из обода, со слабым свечением: кухня ночная,
+	# без него с восьми метров это серое пятно
+	var face := MeshLib.cylinder(clock, radius - 0.035, 0.02, Vector3(0, 0, 0.085),
+		MeshLib.BONE, Vector3(90, 0, 0))
+	face.material_override = MeshLib.mat(MeshLib.BONE, 0.75, 0.0, Color(0.30, 0.28, 0.22))
+	# часовые деления: 12, 3, 6, 9 — крупные золотые, остальные мелкие тёмные
+	var tick_r := radius - 0.06
+	for i in 12:
+		var ang := i * TAU / 12.0
+		var big: bool = i % 3 == 0
+		var tw: float = 0.022 if big else 0.014
+		var th: float = 0.05 if big else 0.028
+		var tick := MeshLib.box(clock, Vector3(tw, th, 0.012),
+			Vector3(sin(ang) * tick_r, cos(ang) * tick_r, 0.098),
+			dark, Vector3(0, 0, -rad_to_deg(ang)))
+		if big:
+			tick.material_override = MeshLib.mat(gold, 0.4, 0.6)
+	# стрелки на 10:10 — разведены в стороны, читаются с одного взгляда.
+	# Минутная не достаёт до делений (0.17 < 0.175), чтобы не втыкаться в них.
+	_clock_hand(clock, 305.0, 0.115, 0.030, 0.100, dark)   # часовая
+	_clock_hand(clock, 60.0, 0.170, 0.020, 0.108, dark)    # минутная
+	MeshLib.sphere(clock, 0.024, Vector3(0, 0, 0.118), gold)
+	return clock
+
+## Одна стрелка: пивот в центре циферблата, брусок растёт от него «вверх» на 12 часов.
+func _clock_hand(clock: Node3D, deg_from_12: float, length: float, width: float,
+		z: float, c: Color) -> void:
+	var pivot := Node3D.new()
+	pivot.position = Vector3(0, 0, z)
+	pivot.rotation_degrees = Vector3(0, 0, -deg_from_12)
+	clock.add_child(pivot)
+	MeshLib.box(pivot, Vector3(width, length, 0.014), Vector3(0, length / 2.0, 0), c)
 
 func _lamp(pos: Vector3, color: Color, range_: float, energy: float) -> void:
 	var l := OmniLight3D.new()
@@ -357,6 +406,14 @@ func _kitchen() -> void:
 		d.id = i
 		dust_list.append(d)
 	ModelLib.solid(self, "Trashcan_Small1", Vector3(-7.7, FLOOR_Y, 8.9), 0, HS)
+	# Настенные часы на глухом простенке z=0 западнее прохода в коридор.
+	# Единственная стена кухни без навесных шкафов и без дыры лестничной шахты
+	# (SHAFT_W съедает пол при x -10.6..-8), видна и от мойки, и от чёрного хода.
+	# Промеры: панель _wall_row_x(z=0) сплошная при x -22..-13, y 0.2..3.4;
+	# часы занимают x -14.16..-13.64, y 1.94..2.46 — до края проёма 0.64 м,
+	# до перемычки над ним (y 2.6) 0.14 м. Центр ровно в двух метрах над полом,
+	# задняя грань корпуса на z=0.155 при грани стены 0.15 — зазор 5 мм.
+	_wall_clock(Vector3(-13.9, FLOOR_Y + 2.0, 0.155))
 	_lamp(Vector3(-11.0, 3.0, 6.0), Color(1.0, 0.8, 0.55), 10.0, 1.1)
 	ModelLib.visual(self, "Light_Ceiling1", Vector3(-11.0, SLAB_BOT - 0.05, 6.0), 0, HS)
 
@@ -506,11 +563,29 @@ func _corridor_e1() -> void:
 func _living_room() -> void:
 	# x -15..-7, z 4..10. Вход с балкона (x=-7, z 6..7.8), в коридор (z=4, x -11..-9.2)
 	# спинкой к северной стене, сиденьем в комнату
-	ModelLib.solid(self, "Couch_Large1", Vector3(-12.6, F2, 9.1), 0, HS)
-	# сидит на подушках лицом в комнату, а не за спинкой
+	# ДИВАН РАЗВЁРНУТ НА 180, И ЭТО НЕ КОСМЕТИКА. Промер треугольников (probe_seat)
+	# показал, что у Couch_Large1 спинка стоит на МИНИМУМЕ локального Z, а подушка
+	# открыта в +Z. При прежнем rot_y=0 диван стоял спинкой в комнату, сиденьем в
+	# стену — комментарий обещал обратное. Ведьма сидела с той стороны, где спинка,
+	# и поэтому висела над паркетом: садиться там было не на что.
+	# Положение доводится по AABB — спинка встаёт к северной стене сама, без
+	# подобранного z: поставили в ноль, промерили, сдвинули на разницу.
+	couch_body = ModelLib.solid(self, "Couch_Large1", Vector3(-12.6, F2, 0.0), 180, HS)
+	couch_body.position.z += (HZ - 0.11) - ModelLib.merged_aabb(couch_body).end.z
+	# Посадка считается ОТ ФАКТИЧЕСКОЙ ГЕОМЕТРИИ ДИВАНА, а не от подобранного числа.
+	# Тут стояло couch_marker.position = (-12.6, F2 + 0.42 - 0.444, 8.55), и оба
+	# числа были угаданы: solid() ставит модель по origin и AABB не центрирует, из-за
+	# чего диван при HS=0.6 занимает z 8.695..9.890, а маркер на 8.55 оказался на
+	# 14 см ВПЕРЕДИ переднего среза — ведьма висела над паркетом.
+	# Теперь ModelLib.seat_spot находит подушку по треугольникам меша (высота и
+	# глубина площадки, открытая сторона, поворот), а WitchNPC.sit_root_for переводит
+	# точку подушки в положение корня по промеренному смещению таза. Ни одного
+	# числа про диван в этом файле не осталось — переставь диван, и посадка поедет
+	# за ним сама.
+	couch_seat = ModelLib.seat_spot(couch_body, WitchNPC.PELVIS_HALF_Z, WitchNPC.THIGH_LEN)
 	couch_marker = Node3D.new()
-	couch_marker.position = Vector3(-12.6, F2 + 0.42, 8.55)
-	couch_marker.rotation_degrees = Vector3(0, 0, 0)
+	couch_marker.position = WitchNPC.sit_root_for(couch_seat["point"], couch_seat["yaw"])
+	couch_marker.rotation_degrees = Vector3(0, couch_seat["yaw"], 0)
 	add_child(couch_marker)
 	serve_zone = ServeZone.make(self, Vector3(-12.6, F2, 7.3))
 	var fp := ModelLib.solid(self, "Fireplace", Vector3(-12.6, F2, 4.6), 0, HS)

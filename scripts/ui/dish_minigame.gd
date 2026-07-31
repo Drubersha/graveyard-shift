@@ -33,6 +33,7 @@ var _prev_pos := Vector2.ZERO
 var _stains: Array[Stain] = []
 var _center := Vector2.ZERO
 var _done := false
+var _synced := false          # курсор уже догнали, дальше это настоящие движения
 
 static func start(parent: Node, plate_: BreakableProp) -> DishMinigame:
 	var mg := DishMinigame.new()
@@ -81,6 +82,21 @@ func _process(_delta: float) -> void:
 	_center = _root.size / 2.0
 	_sponge_pos = _root.get_global_mouse_position()
 	var moved := _sponge_pos.distance_to(_prev_pos)
+	# ПЕРВЫЙ КАДР — ЭТО НЕ ДВИЖЕНИЕ ГУБКОЙ, А ТЕЛЕПОРТ КУРСОРА.
+	# _ready() зовёт warp_mouse и записывает в _prev_pos желаемую точку, а система
+	# отдаёт настоящее положение мыши только со следующего кадра. Разница между
+	# ними уходила в _scrub одним махом: длинный отрезок через всю тарелку стирал
+	# все пятна разом, мини-игра закрывалась в том же кадре, и селфтест находил
+	# уже чистую тарелку — отсюда его плавающий провал «мини-игра не открылась»
+	# примерно раз в три прогона. Игроку доставалось то же: первое же шевеление
+	# мыши списывало половину пятен.
+	# Тот же случай — прыжок курсора после alt-tab, поэтому скачки шире тарелки
+	# считаются перестановкой, а не мытьём.
+	if not _synced or moved > PLATE_R:
+		_synced = true
+		_prev_pos = _sponge_pos
+		_root.queue_redraw()
+		return
 	if moved > 0.5:
 		_scrub(_prev_pos, _sponge_pos, moved)
 		_prev_pos = _sponge_pos

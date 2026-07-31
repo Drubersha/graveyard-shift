@@ -16,7 +16,7 @@ func _ready() -> void:
 	mass = 2.0
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(0.3, 0.14, 0.42)
+	shape.size = Vector3(0.24, 0.20, 0.72)
 	col.shape = shape
 	add_child(col)
 	_build_visual()
@@ -24,16 +24,11 @@ func _ready() -> void:
 func _build_visual() -> void:
 	_visual = Node3D.new()
 	add_child(_visual)
-	# ладонь
-	MeshLib.box(_visual, Vector3(0.2, 0.07, 0.22), Vector3(0, 0, 0.04), MeshLib.BONE)
-	# пальцы
-	for i in 4:
-		var x := -0.075 + i * 0.05
-		MeshLib.capsule(_visual, 0.022, 0.16, Vector3(x, 0, -0.14), MeshLib.BONE, Vector3(90, 0, 0))
-	# большой палец
-	MeshLib.capsule(_visual, 0.022, 0.12, Vector3(0.13, 0, 0.02), MeshLib.BONE, Vector3(0, 0, 90))
-	# торчащая кость предплечья
-	MeshLib.capsule(_visual, 0.035, 0.22, Vector3(0, 0.04, 0.2), MeshLib.BONE_DARK, Vector3(70, 0, 0))
+	# та же деталь, что была на плече: рука лежит ладонью вниз и ползёт кистью вперёд.
+	# origin детали — в плече, поэтому разворачиваем и сдвигаем локтем назад.
+	var arm := BoneParts.build(_visual, "arm_r")
+	arm.rotation_degrees = Vector3(90, 0, 0)          # плечо у хвоста, кисть вперёд (-Z)
+	arm.position = Vector3(0, 0.10, 0.30)
 	# маркер, чтобы руку было видно издалека
 	MeshLib.label(self, "РУКА", Vector3(0, 0.65, 0), 28, MeshLib.ACCENT)
 

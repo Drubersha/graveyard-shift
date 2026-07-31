@@ -58,7 +58,7 @@ func _fence() -> void:
 	# столбы ворот с черепами
 	for sx in [-1.9, 1.9]:
 		MeshLib.solid_box(self, Vector3(0.4, 2.2, 0.4), Vector3(sx, 1.1, 2), MeshLib.STONE)
-		MeshLib.sphere(self, 0.14, Vector3(sx, 2.35, 2), MeshLib.BONE_DARK)
+		MeshLib.sphere(self, 0.14, Vector3(sx, 2.35, 2), MeshLib.BONE_PROP)
 	# арка с вывеской — читается по E, чтобы не висела на пол-экрана
 	MeshLib.box(self, Vector3(4.4, 0.35, 0.3), Vector3(0, 2.5, 2), MeshLib.STONE_DARK)
 	SignPost.make(self, Vector3(0, 2.9, 2.0),
@@ -90,7 +90,7 @@ func _gate() -> void:
 		# чтобы нельзя было дёрнуть рычаг сквозь щель между створками
 		MeshLib.box(gate, Vector3(0.42, 0.8, 0.07), Vector3(-side * 1.62, 1.28, 0), MeshLib.METAL.darkened(0.5))
 		if side > 0:
-			MeshLib.sphere(gate, 0.09, Vector3(-side * 1.62, 1.3, -0.08), MeshLib.BONE_DARK)
+			MeshLib.sphere(gate, 0.09, Vector3(-side * 1.62, 1.3, -0.08), MeshLib.BONE_PROP)
 		if side < 0:
 			_gate_l = gate
 		else:
@@ -238,10 +238,10 @@ func _scatter_decor() -> void:
 		var pick := i % 3
 		if pick == 0:
 			# косточка, иногда пара крест-накрест
-			MeshLib.capsule(self, 0.035, 0.28, Vector3(x, 0.035, z), MeshLib.BONE_DARK,
+			MeshLib.capsule(self, 0.035, 0.28, Vector3(x, 0.035, z), MeshLib.BONE_PROP,
 				Vector3(90, rng.randf_range(0, 360), 0))
 			if i % 6 == 0:
-				MeshLib.capsule(self, 0.035, 0.24, Vector3(x + 0.12, 0.035, z + 0.06), MeshLib.BONE_DARK,
+				MeshLib.capsule(self, 0.035, 0.24, Vector3(x + 0.12, 0.035, z + 0.06), MeshLib.BONE_PROP,
 					Vector3(90, rng.randf_range(0, 360), 0))
 		elif pick == 1:
 			# камешек — приплюснутая полузарытая сфера

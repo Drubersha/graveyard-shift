@@ -25,7 +25,7 @@ const KINDS := {
 	"shelf":   [Vector3(0.9, 1.7, 0.3), MeshLib.WOOD_DARK, 20.0, 4.5, 40],
 	"tv":      [Vector3(0.7, 0.5, 0.5), Color(0.15, 0.15, 0.17), 12.0, 3.5, 50],
 	"lamp":    [Vector3(0.22, 1.4, 0.22), Color(0.6, 0.55, 0.4), 4.0, 3.0, 20],
-	"skullpot":[Vector3(0.24, 0.24, 0.24), MeshLib.BONE_DARK, 2.0, 2.6, 15],
+	"skullpot":[Vector3(0.24, 0.24, 0.24), MeshLib.BONE_PROP, 2.0, 2.6, 15],
 	"crate":   [Vector3(0.5, 0.5, 0.5), MeshLib.WOOD, 8.0, 4.2, 15],
 	# бытовуха
 	"plate_dirty": [Vector3(0.24, 0.05, 0.24), Color(0.62, 0.64, 0.5), 1.0, 2.0, 5],

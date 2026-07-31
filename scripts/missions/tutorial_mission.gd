@@ -36,7 +36,7 @@ func start_intro() -> void:
 	player.reassembled.connect(_on_reassembled)
 	player.call_deferred("shatter", Vector3.UP)
 	_enter(Stage.ASSEMBLE)
-	Game.hint("Мышь — камера. Остальное управление появится по ходу дела.")
+	Game.hint("Мышь — камера. Жми R, чтобы собраться: сам скелет уже не срастается.")
 
 # ---------------------------------------------------------------- привязка локаций
 
@@ -87,7 +87,7 @@ func _enter(s: Stage) -> void:
 	Game.mission_stage_changed.emit(s)
 	match s:
 		Stage.ASSEMBLE:
-			Game.objective_changed.emit("Ты — куча костей в открытой могиле. Соберись: кости слетятся к черепу, дай им секунду.")
+			Game.objective_changed.emit("Ты — куча костей в открытой могиле. Само не срастётся: жми R — кости слетятся к черепу.")
 			_beacon.visible = false
 		Stage.WALK_OUT:
 			Game.objective_changed.emit("Отлично, стоишь. Теперь разомни кости: пройдись до маяка (WASD).")

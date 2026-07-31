@@ -10,6 +10,7 @@ var _meter: ProgressBar
 var _meter_label: Label
 var _charge_bar: ProgressBar
 var _item_label: Label
+var _parts: Label
 var _fade: ColorRect
 var _hint_timer := 0.0
 
@@ -31,7 +32,8 @@ E — взаимодействовать
 F — оторвать/прирастить руку (ползёт удалённо)
 G — снять/вернуть череп (камера всегда с черепом)
 Tab — управление: тело / рука / череп
-R — рассыпаться  |  H — собраться и вернуться ко входу
+R — рассыпаться, а в куче — собраться (сам не соберётся)
+H — собраться целиком и вернуться ко входу
 V — вид от 1-го/3-го лица  |  Esc — мышь"
 
 	_prompt = _make_label(root, 22, HORIZONTAL_ALIGNMENT_CENTER)
@@ -71,6 +73,12 @@ V — вид от 1-го/3-го лица  |  Esc — мышь"
 	_item_label.modulate = Color(0.85, 0.95, 0.8)
 	_set_rect(_item_label, 0.0, 1.0, 22, -46, 520, 30)
 	_item_label.text = ""
+
+	# что отвалилось и не вернулось — прямо над подписью предмета
+	_parts = _make_label(root, 18, HORIZONTAL_ALIGNMENT_LEFT)
+	_parts.modulate = Color(0.95, 0.72, 0.62)
+	_set_rect(_parts, 0.0, 1.0, 22, -76, 700, 28)
+	_parts.text = ""
 
 	# фейд для перехода между локациями
 	_fade = ColorRect.new()
@@ -166,14 +174,15 @@ func _update_meters() -> void:
 		_charge_bar.value = charge_skel.charge_ratio()
 	else:
 		_charge_bar.visible = false
-	# кулдаун рассыпания
+	# рассыпанное состояние: сборка только по кнопке, таймера больше нет
 	var skel := Game.player_skeleton as SkeletonPlayer
 	if skel and skel.state == SkeletonPlayer.State.SHATTERED:
 		_cooldown.visible = true
-		var left := skel.cooldown_ratio() * SkeletonPlayer.REASSEMBLE_COOLDOWN
-		if left > 0.05:
-			_cooldown.text = "РАССЫПАЛСЯ\nсборка через %.1f с" % left
-		else:
-			_cooldown.text = "СОБИРАЕМСЯ…\n(череп должен остановиться)"
+		_cooldown.text = "РАССЫПАЛСЯ\n[R] — стянуть кости к черепу"
 	else:
 		_cooldown.visible = false
+	# неполный комплект: что именно отвалилось
+	if skel and skel.state != SkeletonPlayer.State.SHATTERED and skel.parts_missing() > 0:
+		_parts.text = "ПОТЕРЯНО: " + ", ".join(skel.missing_labels()) + "   [R] — рассыпаться и собраться"
+	else:
+		_parts.text = ""

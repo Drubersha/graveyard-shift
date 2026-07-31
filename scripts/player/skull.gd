@@ -28,10 +28,8 @@ func _ready() -> void:
 	add_child(anchor)
 	_visual = Node3D.new()
 	add_child(_visual)
-	MeshLib.sphere(_visual, 0.17, Vector3.ZERO, MeshLib.BONE)
-	MeshLib.box(_visual, Vector3(0.16, 0.1, 0.12), Vector3(0, -0.12, -0.03), MeshLib.BONE)
-	MeshLib.sphere(_visual, 0.042, Vector3(-0.062, 0.02, -0.155), Color.BLACK)
-	MeshLib.sphere(_visual, 0.042, Vector3(0.062, 0.02, -0.155), Color.BLACK)
+	# ровно та же деталь, что стояла на плечах — никакого «второго черепа»
+	BoneParts.build(_visual, "skull")
 
 func set_view_mode(first_person: bool) -> void:
 	if is_instance_valid(_visual):

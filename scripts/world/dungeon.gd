@@ -159,9 +159,9 @@ func _ritual_room() -> void:
 		var ang := i * TAU / 6.0 + 0.4
 		MeshLib.capsule(self, 0.05, randf_range(0.3, 0.5),
 			Vector3(11.5 + cos(ang) * 3.6, FLOOR_Y + 0.06, 2.0 + sin(ang) * 3.6),
-			MeshLib.BONE_DARK, Vector3(90, rad_to_deg(ang), 0))
-	MeshLib.sphere(self, 0.17, Vector3(8.2, FLOOR_Y + 0.17, 5.4), MeshLib.BONE_DARK)
-	MeshLib.sphere(self, 0.17, Vector3(15.8, FLOOR_Y + 0.17, 1.2), MeshLib.BONE_DARK)
+			MeshLib.BONE_PROP, Vector3(90, rad_to_deg(ang), 0))
+	MeshLib.sphere(self, 0.17, Vector3(8.2, FLOOR_Y + 0.17, 5.4), MeshLib.BONE_PROP)
+	MeshLib.sphere(self, 0.17, Vector3(15.8, FLOOR_Y + 0.17, 1.2), MeshLib.BONE_PROP)
 	BreakableProp.make(self, "skullpot", Vector3(13.2, FLOOR_Y + 0.2, 6.0))
 	MeshLib.label(self, "ПОДЗЕМЕЛЬЕ", Vector3(11.5, 2.5, -3.7), 40, Color(0.9, 0.4, 0.4))
 	_torch(Vector3(16.6, 2.0, 5.0), 90)
