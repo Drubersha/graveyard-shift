@@ -1,6 +1,7 @@
 class_name DoorGate extends Node3D
 ## Дверь на петле. Может быть заперта (тогда interact даёт подсказку).
-## Открывается кодом (open) или интерактом, когда не заперта.
+## Открывается кодом (open) или интерактом; открытую interact закрывает обратно.
+## swing со знаком: в какую сторону распахивается створка (+105 / -105).
 
 signal opened
 
@@ -8,11 +9,14 @@ var locked := false
 var locked_hint := "Заперто."
 var is_open := false
 var prompt := "Открыть дверь"
+var swing := 105.0
 
 var _panel: StaticBody3D
 var _width := 0.9
 var _height := 2.0
+var _closed_yaw := 0.0
 var model_path := ""   # модель двери из хауспака вместо процедурной панели
+var model_raw := Vector3.ZERO   # сырой AABB glb-модели (Meshy): включает ветку make_glb
 
 static func make(parent: Node, pos: Vector3, rot_y: float, width := 0.9, height := 2.0, color := MeshLib.WOOD_DARK) -> DoorGate:
 	var d := DoorGate.new()
@@ -36,8 +40,25 @@ static func make_model(parent: Node, pos: Vector3, rot_y: float, width: float, h
 	d._build(MeshLib.WOOD_DARK)
 	return d
 
+## Дверь из glb-модели с центральным origin (Meshy): raw — промеренный AABB.
+## Створка растягивается на весь проём width x height, петля — в origin узла.
+static func make_glb(parent: Node, pos: Vector3, rot_y: float, width: float, height: float,
+		path: String, raw: Vector3, swing_deg := 105.0) -> DoorGate:
+	var d := DoorGate.new()
+	d._width = width
+	d._height = height
+	d.model_path = path
+	d.model_raw = raw
+	d.swing = swing_deg
+	d.position = pos
+	d.rotation_degrees = Vector3(0, rot_y, 0)
+	parent.add_child(d)
+	d._build(MeshLib.WOOD_DARK)
+	return d
+
 func _build(color: Color) -> void:
 	add_to_group("interactable")
+	_closed_yaw = rotation_degrees.y
 	if model_path == "":
 		# петля — в корне узла; полотно смещено на полширины
 		_panel = MeshLib.solid_box(self, Vector3(_width, _height, 0.08),
@@ -56,22 +77,31 @@ func _build(color: Color) -> void:
 		_panel.add_child(col)
 		# модель ставим и ПОТОМ прижимаем её AABB к петле: у дверей хауспака
 		# пивот в разных местах, иначе полотно улетает мимо проёма
-		var nat_w := 3.48 if model_path.contains("Double") else 1.74
-		var vis := ModelLib.visual(_panel, model_path, Vector3.ZERO, 180.0)
-		vis.scale = Vector3(_width / nat_w, _height / 4.19, 0.7)
+		var vis: Node3D
+		if model_raw != Vector3.ZERO:
+			vis = ModelLib.visual(_panel, model_path, Vector3.ZERO, 0.0)
+			var sy := _height / model_raw.y
+			vis.scale = Vector3(_width / model_raw.x, sy, sy)
+		else:
+			var nat_w := 3.48 if model_path.contains("Double") else 1.74
+			vis = ModelLib.visual(_panel, model_path, Vector3.ZERO, 180.0)
+			vis.scale = Vector3(_width / nat_w, _height / 4.19, 0.7)
 		var box := ModelLib.merged_aabb(vis)
 		vis.position -= Vector3(box.position.x, box.position.y, box.position.z + box.size.z / 2.0)
 
 func get_prompt() -> String:
-	return locked_hint if locked else prompt
+	if locked:
+		return locked_hint
+	return "Закрыть дверь" if is_open else prompt
 
 func interact(_by: Node) -> void:
 	if locked:
 		Game.hint(locked_hint)
 		return
 	if is_open:
-		return
-	open()
+		close()
+	else:
+		open()
 
 func open() -> void:
 	if is_open:
@@ -79,9 +109,17 @@ func open() -> void:
 	is_open = true
 	locked = false
 	var tw := create_tween()
-	tw.tween_property(self, "rotation_degrees:y", rotation_degrees.y + 105.0, 0.6) \
+	tw.tween_property(self, "rotation_degrees:y", _closed_yaw + swing, 0.6) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	opened.emit()
+
+func close() -> void:
+	if not is_open:
+		return
+	is_open = false
+	var tw := create_tween()
+	tw.tween_property(self, "rotation_degrees:y", _closed_yaw, 0.5) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func unlock() -> void:
 	locked = false

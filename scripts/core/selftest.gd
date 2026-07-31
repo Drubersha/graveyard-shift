@@ -641,6 +641,40 @@ func _physics_process(_delta: float) -> void:
 			else:
 				_fail("ходьба/лестницы дают удар %.1f м/с — это выше порога отрыва %.1f, деталь отвалится на ровном месте"
 					% [_skel.peak_impact, SkeletonPlayer.SHOCK_PART])
+			# межкомнатные двери кухни: три штуки, не заперты, интеракт распахивает
+			if _mansion.kitchen_doors.size() == 3:
+				_ok("в кухне три межкомнатные двери")
+			else:
+				_fail("дверей в кухне %d, ждали 3" % _mansion.kitchen_doors.size())
+			for d: DoorGate in _mansion.kitchen_doors:
+				d.interact(_skel)
+			_wait = 50
+			_step = 36
+		36:
+			var opened_all := true
+			for d: DoorGate in _mansion.kitchen_doors:
+				var want: float = d._closed_yaw + d.swing
+				if not d.is_open or absf(wrapf(d.rotation_degrees.y - want, -180.0, 180.0)) > 6.0:
+					opened_all = false
+					print("  DIAG дверь: is_open=", d.is_open, " yaw=%.1f ждали %.1f" % [d.rotation_degrees.y, want])
+			if opened_all:
+				_ok("двери кухни распахнулись на свой swing")
+			else:
+				_fail("дверь кухни не открылась или недокрутилась")
+			for d: DoorGate in _mansion.kitchen_doors:
+				d.interact(_skel)
+			_wait = 45
+			_step = 37
+		37:
+			var closed_all := true
+			for d: DoorGate in _mansion.kitchen_doors:
+				if d.is_open or absf(wrapf(d.rotation_degrees.y - d._closed_yaw, -180.0, 180.0)) > 6.0:
+					closed_all = false
+					print("  DIAG дверь: is_open=", d.is_open, " yaw=%.1f ждали %.1f" % [d.rotation_degrees.y, d._closed_yaw])
+			if closed_all:
+				_ok("повторный интеракт закрыл двери обратно")
+			else:
+				_fail("дверь кухни не закрылась обратно")
 			_finish()
 
 func _finish() -> void:

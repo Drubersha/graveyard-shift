@@ -6,6 +6,9 @@ signal washed
 
 var prompt := "Помыть тарелку"
 var model_path := ""   # модель мойки из хауспака вместо процедурной тумбы
+var model_scale := ModelLib.HOUSE_SCALE
+var model_rot := 180.0
+var zone_y_override := NAN   # локальная высота чаши, если AABB модели выше неё (кран)
 var _minigame: DishMinigame = null
 
 func _ready() -> void:
@@ -25,15 +28,20 @@ func _ready() -> void:
 		MeshLib.cylinder(self, 0.03, 0.35, Vector3(0, 1.1, -0.22), MeshLib.METAL)
 		MeshLib.cylinder(self, 0.025, 0.25, Vector3(0, 1.26, -0.12), MeshLib.METAL, Vector3(90, 0, 0))
 	else:
-		var vis := ModelLib.visual(self, model_path, Vector3.ZERO, 180.0, ModelLib.HOUSE_SCALE)
+		var vis := ModelLib.visual(self, model_path, Vector3.ZERO, model_rot, model_scale)
 		var aabb := ModelLib.merged_aabb(vis)  # масштаб уже внутри
+		zone_y = zone_y_override if not is_nan(zone_y_override) \
+			else aabb.position.y + aabb.size.y * 0.8
+		# Коллизия — только до кромки чаши: полный AABB включает кран, и брошенная
+		# в мойку тарелка ложилась бы на невидимую крышку выше чаши.
+		var col_h := maxf(zone_y - aabb.position.y, 0.3)
 		var col := CollisionShape3D.new()
 		var shape := BoxShape3D.new()
-		shape.size = aabb.size.max(Vector3(0.3, 0.3, 0.3)) * 0.95
+		shape.size = Vector3(maxf(aabb.size.x * 0.95, 0.3), col_h, maxf(aabb.size.z * 0.95, 0.3))
 		col.shape = shape
-		col.position = aabb.position + aabb.size * 0.5
+		col.position = Vector3(aabb.position.x + aabb.size.x * 0.5,
+			aabb.position.y + col_h * 0.5, aabb.position.z + aabb.size.z * 0.5)
 		add_child(col)
-		zone_y = aabb.size.y * 0.8
 	# зона мойки над чашей
 	var zone := Area3D.new()
 	zone.position = Vector3(0, zone_y, 0)

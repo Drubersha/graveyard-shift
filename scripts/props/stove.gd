@@ -10,7 +10,10 @@ const RECIPE_NAMES := {"egg": "яйцо", "flour": "мука", "bottle": "вин
 var prompt := "Готовить завтрак"
 var cooked_once := false
 var model_path := ""   # модель плиты из хауспака вместо процедурного корпуса
+var model_scale := ModelLib.HOUSE_SCALE
+var model_rot := 180.0
 var top_y := 1.0       # высота варочной поверхности (для спавна завтрака)
+var top_y_override := NAN   # локальная высота варочной, если у модели AABB выше неё (вытяжка)
 var _breakfast: BreakableProp = null
 var _zone: Area3D
 var _flame: MeshInstance3D
@@ -20,14 +23,20 @@ func _ready() -> void:
 	if model_path == "":
 		_build_procedural()
 	else:
-		var vis := ModelLib.visual(self, model_path, Vector3.ZERO, 180.0, ModelLib.HOUSE_SCALE)
+		var vis := ModelLib.visual(self, model_path, Vector3.ZERO, model_rot, model_scale)
 		var aabb := ModelLib.merged_aabb(vis)  # масштаб уже внутри
-		top_y = aabb.size.y * 0.98
+		top_y = top_y_override if not is_nan(top_y_override) \
+			else aabb.position.y + aabb.size.y * 0.98
+		# Коллизия — только до варочной поверхности: если у модели сзади вытяжка,
+		# полный AABB задирает крышу box-коллизии выше стола, и положенные на плиту
+		# ингредиенты оказываются ВНУТРИ коллизии — физика их выкидывает.
+		var col_h := maxf(top_y - aabb.position.y, 0.3)
 		var col := CollisionShape3D.new()
 		var shape := BoxShape3D.new()
-		shape.size = aabb.size.max(Vector3(0.3, 0.3, 0.3)) * 0.95
+		shape.size = Vector3(maxf(aabb.size.x * 0.95, 0.3), col_h, maxf(aabb.size.z * 0.95, 0.3))
 		col.shape = shape
-		col.position = aabb.position + aabb.size * 0.5
+		col.position = Vector3(aabb.position.x + aabb.size.x * 0.5,
+			aabb.position.y + col_h * 0.5, aabb.position.z + aabb.size.z * 0.5)
 		add_child(col)
 	# зелёное ведьминское пламя над конфоркой (жутко, но работает)
 	_flame = MeshLib.sphere(self, 0.08, Vector3(0, top_y + 0.04, 0), MeshLib.ACCENT, 0.5)

@@ -34,6 +34,52 @@ const SHAFT_BOTTOM := -1.8
 const HS := ModelLib.HOUSE_SCALE
 const FS := ModelLib.FURN_SCALE
 
+# Meshy «некро-мебель»: origin в ЦЕНТРЕ модели, все нормированы к высоте ~1.9,
+# фронт смотрит в +Z. Промеры probe_model.gd 2026-07-31: [путь, сырой AABB].
+const NECRO := {
+	"icebox": ["res://assets/models/139_Necro_Icebox.glb", Vector3(0.714, 1.899, 0.560)],
+	"sink": ["res://assets/models/140_Necro_Sink.glb", Vector3(1.886, 1.899, 1.363)],
+	"stove": ["res://assets/models/141_Necro_Stove.glb", Vector3(1.689, 1.900, 1.042)],
+	"cabinet": ["res://assets/models/142_Necro_Cabinet.glb", Vector3(1.899, 1.653, 0.751)],
+	"wall_cab": ["res://assets/models/143_Necro_WallCabinet.glb", Vector3(0.988, 1.900, 0.399)],
+	"door_in": ["res://assets/models/144_Necro_InteriorDoor.glb", Vector3(1.001, 1.899, 0.159)],
+	"chandelier": ["res://assets/models/145_Necro_Chandelier.glb", Vector3(1.807, 1.897, 1.574)],
+	"sconce": ["res://assets/models/146_Necro_Sconce.glb", Vector3(0.629, 1.899, 1.138)],
+}
+
+func necro_path(key: String) -> String:
+	return NECRO[key][0]
+
+func necro_scale(key: String, target_h: float) -> float:
+	return target_h / (NECRO[key][1] as Vector3).y
+
+## Напольная некро-мебель: узел поднимается на полвысоты (origin в центре).
+func _necro_solid(key: String, x: float, z: float, rot_y: float, target_h: float) -> StaticBody3D:
+	return ModelLib.solid(self, necro_path(key),
+		Vector3(x, FLOOR_Y + target_h * 0.5, z), rot_y, necro_scale(key, target_h))
+
+## Настенная/потолочная некро-модель: pos — ЦЕНТР модели.
+func _necro_at(key: String, pos: Vector3, rot_y: float, target_h: float, solid := true) -> Node3D:
+	if solid:
+		return ModelLib.solid(self, necro_path(key), pos, rot_y, necro_scale(key, target_h))
+	return ModelLib.visual(self, necro_path(key), pos, rot_y, necro_scale(key, target_h))
+
+## Бра со тёплым огоньком; rot 0 — фронт на север (+Z), -90 — на запад (-X).
+func _necro_sconce(pos: Vector3, rot_y: float) -> void:
+	_necro_at("sconce", pos, rot_y, 0.6, false)
+	var dir := Vector3(sin(deg_to_rad(rot_y)), 0, cos(deg_to_rad(rot_y)))
+	var l := OmniLight3D.new()
+	l.position = pos + dir * 0.32 + Vector3(0, 0.12, 0)
+	l.light_color = Color(1.0, 0.72, 0.42)
+	l.omni_range = 4.5
+	l.light_energy = 0.9
+	add_child(l)
+
+## Межкомнатная дверь в проём 1.8 x DOOR_H; swing со знаком — куда распахивать.
+func _inner_door(pos: Vector3, rot_y: float, swing_deg: float) -> DoorGate:
+	return DoorGate.make_glb(self, pos, rot_y, 1.8, DOOR_H,
+		necro_path("door_in"), NECRO["door_in"][1], swing_deg)
+
 var mode := "interior"   # "exterior" — оболочка для улицы, "interior" — комнаты
 var portals: Array[Portal] = []
 var spawns := {}
@@ -50,6 +96,7 @@ var meet_marker: Node3D
 var sink: SinkCounter
 var stove: Stove
 var fridge: Fridge
+var kitchen_doors: Array[DoorGate] = []
 var serve_zone: ServeZone
 var broom: Broom
 var dust_list: Array[DustPatch] = []
@@ -375,47 +422,67 @@ func _candle_stand_pair(a: Vector3, b: Vector3) -> void:
 
 func _kitchen() -> void:
 	# кухня x -15..-7, z 0..10. Проёмы: x=-7 (z 5..6.8), z=0 (x -13..-11.2),
-	# x=-15 (z 4..5.8), задняя дверь (x -11.9..-10.1), спуск в подвал x -10.5..-8, z 1.5..5.
-	# Рабочий треугольник стоит единым блоком у ГЛУХОЙ части задней стены (левее двери).
+	# x=-15 (z 4..5.8), задняя дверь (x -11.9..-10.1), спуск в подвал x -10.6..-8, z 1.2..5.8.
+	# Вся мебель — Meshy «некро-мебель» (NECRO). Рабочая линия стоит у ГЛУХОГО куска
+	# западной стены (z 5.8..9.8, грань x=-14.85), фронтом на восток: yaw узла -90,
+	# внутри пропса модель повёрнута на 180 (фронт Meshy +Z → фронт узла -Z).
 	fridge = Fridge.new()
-	fridge.model_path = "Kitchen_Fridge"
-	fridge.position = Vector3(-14.3, FLOOR_Y, 9.25)
+	fridge.model_path = necro_path("icebox")
+	fridge.model_scale = necro_scale("icebox", 2.0)
+	fridge.position = Vector3(-14.56, FLOOR_Y + 1.0, 9.4)
+	fridge.rotation_degrees = Vector3(0, -90, 0)
 	add_child(fridge)
 	stove = Stove.new()
-	stove.model_path = "Kitchen_Oven_Large"
-	stove.position = Vector3(-13.3, FLOOR_Y, 9.3)
+	stove.model_path = necro_path("stove")
+	stove.model_scale = necro_scale("stove", 1.6)
+	stove.position = Vector3(-14.41, FLOOR_Y + 0.8, 8.1)
+	stove.rotation_degrees = Vector3(0, -90, 0)
+	stove.top_y_override = 0.05   # варочная ~1.05 над полом (центр узла на 1.0); AABB выше — трубы
 	add_child(stove)
 	sink = SinkCounter.new()
-	sink.model_path = "Kitchen_Sink"
-	sink.position = Vector3(-12.4, FLOOR_Y, 9.3)
+	sink.model_path = necro_path("sink")
+	sink.model_scale = necro_scale("sink", 1.25)
+	sink.position = Vector3(-14.40, FLOOR_Y + 0.625, 6.6)
+	sink.rotation_degrees = Vector3(0, -90, 0)
+	sink.zone_y_override = 0.03   # чаша ~0.85 над полом, кран в AABB выше
 	add_child(sink)
-	# тумбы и шкафчики — по бокам блока, всё у стен, столов и стульев на кухне нет
-	ModelLib.solid(self, "Kitchen_2Drawers", Vector3(-9.6, FLOOR_Y, 9.3), 180, HS)
-	ModelLib.solid(self, "Kitchen_1Drawers", Vector3(-8.6, FLOOR_Y, 9.3), 180, HS)
-	ModelLib.solid(self, "Kitchen_Cabinet1", Vector3(-13.3, FLOOR_Y + 1.9, 9.5), 180, HS)
-	ModelLib.solid(self, "Kitchen_CabinetSmall", Vector3(-9.0, FLOOR_Y + 1.9, 9.5), 180, HS)
-	ModelLib.solid(self, "Kitchen_2Drawers", Vector3(-14.6, FLOOR_Y, 7.2), 90, HS)
-	# пыль по всей кухне, обходя лестничный проём и дверные створы;
+	# 4 напольных шкафа вдоль задней (северной) стены по бокам от чёрного хода
+	_necro_solid("cabinet", -13.62, 9.573, 180, 1.0)
+	_necro_solid("cabinet", -12.47, 9.573, 180, 1.0)
+	_necro_solid("cabinet", -9.5, 9.573, 180, 1.0)
+	_necro_solid("cabinet", -8.35, 9.573, 180, 1.0)
+	# 6 навесных: над напольными, над мойкой и на глухом куске южной стены
+	for wx: float in [-13.62, -12.47, -9.5, -8.35]:
+		_necro_at("wall_cab", Vector3(wx, 2.0, 9.705), 180, 0.9)
+	_necro_at("wall_cab", Vector3(-14.755, 2.0, 6.6), -90, 0.9)
+	_necro_at("wall_cab", Vector3(-9.0, 2.0, 0.245), 0, 0.9)
+	# межкомнатные двери в трёх проёмах; распахиваются туда, где нет мебели:
+	# коридорная — в кухню (свободный угол у часов), столовая — в столовую,
+	# зальная — в зал (в кухне рядом ограждение подвальной шахты)
+	kitchen_doors.append(_inner_door(Vector3(-13.0, FLOOR_Y, 0.0), 0.0, -105.0))
+	kitchen_doors.append(_inner_door(Vector3(-15.0, FLOOR_Y, 5.8), 90.0, 105.0))
+	kitchen_doors.append(_inner_door(Vector3(-7.0, FLOOR_Y, 5.0), -90.0, 105.0))
+	# пыль по всей кухне, обходя лестничный проём, мебель и створы дверей;
 	# уже убранная (Game.world_state) не возвращается после похода в подвал
 	var dust_spots := [Vector3(-13.2, FLOOR_Y, 2.2), Vector3(-12.6, FLOOR_Y, 7.9), Vector3(-8.6, FLOOR_Y, 6.6),
-		Vector3(-13.0, FLOOR_Y, 0.9), Vector3(-14.0, FLOOR_Y, 6.2), Vector3(-11.6, FLOOR_Y, 8.4)]
+		Vector3(-13.0, FLOOR_Y, 0.9), Vector3(-13.5, FLOOR_Y, 5.0), Vector3(-11.6, FLOOR_Y, 8.4)]
 	for i in dust_spots.size():
 		if Game.has_mark("dust_cleaned", i):
 			continue
 		var d := DustPatch.make(self, dust_spots[i], 0.55)
 		d.id = i
 		dust_list.append(d)
-	ModelLib.solid(self, "Trashcan_Small1", Vector3(-7.7, FLOOR_Y, 8.9), 0, HS)
 	# Настенные часы на глухом простенке z=0 западнее прохода в коридор.
-	# Единственная стена кухни без навесных шкафов и без дыры лестничной шахты
-	# (SHAFT_W съедает пол при x -10.6..-8), видна и от мойки, и от чёрного хода.
 	# Промеры: панель _wall_row_x(z=0) сплошная при x -22..-13, y 0.2..3.4;
-	# часы занимают x -14.16..-13.64, y 1.94..2.46 — до края проёма 0.64 м,
-	# до перемычки над ним (y 2.6) 0.14 м. Центр ровно в двух метрах над полом,
-	# задняя грань корпуса на z=0.155 при грани стены 0.15 — зазор 5 мм.
+	# часы занимают x -14.16..-13.64, y 1.94..2.46 — до края проёма 0.64 м.
+	# Створ коридорной двери (петля x=-13, свинг -105) до часов не достаёт:
+	# от петли до ближнего угла часов 0.66 м по направлению за пределами дуги.
 	_wall_clock(Vector3(-13.9, FLOOR_Y + 2.0, 0.155))
-	_lamp(Vector3(-11.0, 3.0, 6.0), Color(1.0, 0.8, 0.55), 10.0, 1.1)
-	ModelLib.visual(self, "Light_Ceiling1", Vector3(-11.0, SLAB_BOT - 0.05, 6.0), 0, HS)
+	# люстра в центре комнаты + два бра на глухих простенках юга и востока
+	_necro_at("chandelier", Vector3(-11.0, SLAB_BOT - 0.475, 5.0), 0, 0.85, false)
+	_lamp(Vector3(-11.0, 2.65, 5.0), Color(1.0, 0.8, 0.55), 10.0, 1.1)
+	_necro_sconce(Vector3(-10.3, 2.1, 0.33), 0)
+	_necro_sconce(Vector3(-7.33, 2.1, 8.3), -90)
 
 func _dining() -> void:
 	# x -22..-15, z 0..10; проём в стене x=-15 при z 4..5.8
@@ -469,7 +536,8 @@ func _corridor_w1() -> void:
 	ModelLib.solid(self, "Drawer_1", Vector3(-7.7, FLOOR_Y, -2.2), -90, HS)
 	ModelLib.visual(self, "Houseplant_5", Vector3(-7.7, FLOOR_Y, -8.6), 0, HS)
 	ModelLib.visual(self, "Carpet_1", Vector3(-10.0, FLOOR_Y + 0.02, -3.0), 90, HS)
-	ModelLib.visual(self, "Lantern_Wall", Vector3(-9.6, 2.1, -0.2))
+	# Lantern_Wall убран: модель без масштаба пака, кронштейн с цепью тянулся
+	# на метр сквозь стену и висел посреди кухни. Бра повесим некро-паком.
 	_lamp(Vector3(-10.5, 2.8, -4.0), Color(0.9, 0.8, 0.65), 8.0, 0.75)
 
 # ================================================================ восток, этаж 1
