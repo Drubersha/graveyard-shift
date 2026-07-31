@@ -123,6 +123,7 @@ func _ready() -> void:
 	_stairs_main()
 	_walls_f1()
 	_walls_f2()
+	_room_skins()
 	_grand_hall()
 	_kitchen()
 	_dining()
@@ -160,41 +161,144 @@ func _materials() -> void:
 
 # ================================================================ хелперы
 
-func _wall(size: Vector3, pos: Vector3, outer := false) -> StaticBody3D:
+# Пер-комнатные наборы Meshy «текстуры дома» (assets/textures/house/<room>_<part>.png).
+# Материалы трипланарные, поэтому сегментные стены и накладки тайлятся без швов.
+var _skins := {}
+
+func _skin(room: String, part: String) -> StandardMaterial3D:
+	var key := room + "/" + part
+	if not _skins.has(key):
+		var uv := 0.35 if part == "wall" else (0.4 if part == "floor" else 0.3)
+		_skins[key] = ModelLib.tex_mat("house/%s_%s.png" % [room, part], Color.WHITE, uv)
+	return _skins[key]
+
+## Стена. Если заданы материалы сторон — строится ДВУМЯ половинками по толщине,
+## чтобы каждая комната получила свои обои (axis: ось толщины, "z" у рядов вдоль X).
+## mat_neg — сторона с меньшей координатой по оси, mat_pos — с большей.
+func _wall(size: Vector3, pos: Vector3, outer := false, axis := "z",
+		mat_neg: Material = null, mat_pos: Material = null) -> StaticBody3D:
+	var fallback := _mat_wall_out if outer else _mat_wall_in
+	if mat_neg == null and mat_pos == null:
+		return _wall_box(size, pos, fallback)
+	if mat_neg == mat_pos:
+		return _wall_box(size, pos, mat_neg)
+	var half := size
+	var off := Vector3.ZERO
+	if axis == "x":
+		half = Vector3(size.x / 2.0, size.y, size.z)
+		off = Vector3(size.x / 4.0, 0, 0)
+	else:
+		half = Vector3(size.x, size.y, size.z / 2.0)
+		off = Vector3(0, 0, size.z / 4.0)
+	_wall_box(half, pos - off, mat_neg if mat_neg else fallback)
+	return _wall_box(half, pos + off, mat_pos if mat_pos else fallback)
+
+func _wall_box(size: Vector3, pos: Vector3, mat: Material) -> StaticBody3D:
 	var body := MeshLib.solid_box(self, size, pos, Color.WHITE)
 	for child in body.get_children():
 		if child is MeshInstance3D:
-			(child as MeshInstance3D).material_override = _mat_wall_out if outer else _mat_wall_in
+			(child as MeshInstance3D).material_override = mat
 	return body
 
 ## Стена вдоль X с проёмами. openings: [[x_from, x_to], ...] или [[x0, x1, высота]].
-## Проёмы обязаны идти по возрастанию.
-func _wall_row_x(z: float, x0: float, x1: float, y0: float, h: float, openings := [], outer := false) -> void:
-	var thick := T if outer else WT
+## Проёмы обязаны идти по возрастанию. mat_neg/mat_pos — комнаты со стороны z-/z+.
+func _wall_row_x(z: float, x0: float, x1: float, y0: float, h: float, openings := [],
+		outer := false, mat_neg: Material = null, mat_pos: Material = null, thick_override := 0.0) -> void:
+	var thick := thick_override if thick_override > 0.0 else (T if outer else WT)
 	var cursor := x0
 	for op: Array in openings:
 		if op[0] > cursor:
-			_wall(Vector3(op[0] - cursor, h, thick), Vector3((cursor + op[0]) / 2.0, y0 + h / 2.0, z), outer)
+			_wall(Vector3(op[0] - cursor, h, thick), Vector3((cursor + op[0]) / 2.0, y0 + h / 2.0, z), outer, "z", mat_neg, mat_pos)
 		var top: float = op[2] if op.size() > 2 else DOOR_H
 		if h > top:
-			_wall(Vector3(op[1] - op[0], h - top, thick), Vector3((op[0] + op[1]) / 2.0, y0 + top + (h - top) / 2.0, z), outer)
+			_wall(Vector3(op[1] - op[0], h - top, thick), Vector3((op[0] + op[1]) / 2.0, y0 + top + (h - top) / 2.0, z), outer, "z", mat_neg, mat_pos)
 		cursor = op[1]
 	if cursor < x1:
-		_wall(Vector3(x1 - cursor, h, thick), Vector3((cursor + x1) / 2.0, y0 + h / 2.0, z), outer)
+		_wall(Vector3(x1 - cursor, h, thick), Vector3((cursor + x1) / 2.0, y0 + h / 2.0, z), outer, "z", mat_neg, mat_pos)
 
-## Стена вдоль Z с проёмами.
-func _wall_row_z(x: float, z0: float, z1: float, y0: float, h: float, openings := [], outer := false) -> void:
-	var thick := T if outer else WT
+## Стена вдоль Z с проёмами. mat_neg/mat_pos — комнаты со стороны x-/x+.
+func _wall_row_z(x: float, z0: float, z1: float, y0: float, h: float, openings := [],
+		outer := false, mat_neg: Material = null, mat_pos: Material = null, thick_override := 0.0) -> void:
+	var thick := thick_override if thick_override > 0.0 else (T if outer else WT)
 	var cursor := z0
 	for op: Array in openings:
 		if op[0] > cursor:
-			_wall(Vector3(thick, h, op[0] - cursor), Vector3(x, y0 + h / 2.0, (cursor + op[0]) / 2.0), outer)
+			_wall(Vector3(thick, h, op[0] - cursor), Vector3(x, y0 + h / 2.0, (cursor + op[0]) / 2.0), outer, "x", mat_neg, mat_pos)
 		var top: float = op[2] if op.size() > 2 else DOOR_H
 		if h > top:
-			_wall(Vector3(thick, h - top, op[1] - op[0]), Vector3(x, y0 + top + (h - top) / 2.0, (op[0] + op[1]) / 2.0), outer)
+			_wall(Vector3(thick, h - top, op[1] - op[0]), Vector3(x, y0 + top + (h - top) / 2.0, (op[0] + op[1]) / 2.0), outer, "x", mat_neg, mat_pos)
 		cursor = op[1]
 	if cursor < z1:
-		_wall(Vector3(thick, h, z1 - cursor), Vector3(x, y0 + h / 2.0, (cursor + z1) / 2.0), outer)
+		_wall(Vector3(thick, h, z1 - cursor), Vector3(x, y0 + h / 2.0, (cursor + z1) / 2.0), outer, "x", mat_neg, mat_pos)
+
+## Полы и потолки комнат — тонкие накладки поверх общих плит. Границы — грани
+## стен (внутренние ±0.15, внешние ±0.2 от осей). У кухни пол объезжает шахту
+## SHAFT_W; шабаш пола в паке не имеет и остаётся на общем; гостиная и кладовка
+## мётел без наборов. Полоса старого пола в дверных проёмах читается как порожек.
+func _room_skins() -> void:
+	# --- этаж 1: полы
+	_skin_floor("kitchen", -14.85, 0.15, -7.15, 1.2, FLOOR_Y)
+	_skin_floor("kitchen", -14.85, 1.2, -10.6, 5.8, FLOOR_Y)
+	_skin_floor("kitchen", -8.0, 1.2, -7.15, 5.8, FLOOR_Y)
+	_skin_floor("kitchen", -14.85, 5.8, -7.15, 9.8, FLOOR_Y)
+	_skin_floor("dining", -21.8, 0.15, -15.15, 9.8, FLOOR_Y)
+	_skin_floor("sewing", -21.8, -9.8, -15.15, -0.15, FLOOR_Y)
+	_skin_floor("bathroom", -14.85, -9.8, -11.65, -7.15, FLOOR_Y)
+	_skin_floor("occult", -14.85, -7.15, -7.15, -0.15, FLOOR_Y)
+	_skin_floor("occult", -11.35, -9.8, -7.15, -7.15, FLOOR_Y)
+	_skin_floor("entrance", -6.85, -9.8, 6.85, 9.8, FLOOR_Y)
+	_skin_floor("workshop", 15.15, 0.15, 21.8, 9.8, FLOOR_Y)
+	_skin_floor("potion", 15.15, -9.8, 21.8, -0.15, FLOOR_Y)
+	_skin_floor("occult", 7.15, -7.15, 14.85, -0.15, FLOOR_Y)
+	_skin_floor("occult", 7.15, -9.8, 11.35, -7.15, FLOOR_Y)
+	_skin_floor("bathroom", 11.65, -9.8, 14.85, -7.15, FLOOR_Y)
+	# --- этаж 1: потолки (низ плиты второго этажа)
+	_skin_ceil("kitchen", -14.85, 0.15, -7.15, 9.8, SLAB_BOT)
+	_skin_ceil("dining", -21.8, 0.15, -15.15, 9.8, SLAB_BOT)
+	_skin_ceil("sewing", -21.8, -9.8, -15.15, -0.15, SLAB_BOT)
+	_skin_ceil("bathroom", -14.85, -9.8, -11.65, -7.15, SLAB_BOT)
+	_skin_ceil("occult", -14.85, -7.15, -7.15, -0.15, SLAB_BOT)
+	_skin_ceil("occult", -11.35, -9.8, -7.15, -7.15, SLAB_BOT)
+	_skin_ceil("coven", 7.15, 0.15, 14.85, 9.8, SLAB_BOT)
+	_skin_ceil("workshop", 15.15, 0.15, 21.8, 9.8, SLAB_BOT)
+	_skin_ceil("potion", 15.15, -9.8, 21.8, -0.15, SLAB_BOT)
+	_skin_ceil("occult", 7.15, -7.15, 14.85, -0.15, SLAB_BOT)
+	_skin_ceil("occult", 7.15, -9.8, 11.35, -7.15, SLAB_BOT)
+	_skin_ceil("bathroom", 11.65, -9.8, 14.85, -7.15, SLAB_BOT)
+	# зал: потолок — крыша атриума целиком + низ балконной плиты
+	_skin_ceil("entrance", -6.85, -9.8, 6.85, 9.8, CEIL)
+	_skin_ceil("entrance", -6.85, 4.15, 6.85, 9.8, SLAB_BOT)
+	# --- этаж 2: полы
+	_skin_floor("entrance", -6.85, 4.15, 6.85, 9.8, F2)
+	_skin_floor("master_bedroom", -21.8, -9.8, -15.15, 9.8, F2)
+	_skin_floor("bathroom", -14.85, -9.8, -11.65, -6.65, F2)
+	_skin_floor("occult", -14.85, -6.35, -7.15, 3.85, F2)
+	_skin_floor("occult", -11.35, -9.8, -7.15, -6.35, F2)
+	_skin_floor("library", 7.15, 3.15, 21.8, 9.8, F2)
+	_skin_floor("guest_bedroom", 15.15, -9.8, 21.8, 2.85, F2)
+	_skin_floor("occult", 7.15, -6.35, 14.85, 2.85, F2)
+	_skin_floor("occult", 7.15, -7.35, 11.35, -6.35, F2)
+	_skin_floor("bathroom", 11.65, -9.8, 14.85, -6.65, F2)
+	# --- этаж 2: потолки
+	_skin_ceil("master_bedroom", -21.8, -9.8, -15.15, 9.8, CEIL)
+	_skin_ceil("bathroom", -14.85, -9.8, -11.65, -6.65, CEIL)
+	_skin_ceil("occult", -14.85, -6.35, -7.15, 3.85, CEIL)
+	_skin_ceil("occult", -11.35, -9.8, -7.15, -6.35, CEIL)
+	_skin_ceil("library", 7.15, 3.15, 21.8, 9.8, CEIL)
+	_skin_ceil("guest_bedroom", 15.15, -9.8, 21.8, 2.85, CEIL)
+	_skin_ceil("occult", 7.15, -6.35, 14.85, 2.85, CEIL)
+	_skin_ceil("occult", 7.15, -7.35, 11.35, -6.35, CEIL)
+	_skin_ceil("bathroom", 11.65, -9.8, 14.85, -6.65, CEIL)
+
+## Тонкая накладка пола комнаты поверх общего пола (лёгкий подъём против z-fight).
+func _skin_floor(room: String, x0: float, z0: float, x1: float, z1: float, y: float) -> void:
+	ModelLib.tex_box(self, Vector3(x1 - x0, 0.012, z1 - z0),
+		Vector3((x0 + x1) / 2.0, y + 0.006, (z0 + z1) / 2.0), "house/%s_floor.png" % room, Color.WHITE, 0.4)
+
+## Накладка потолка комнаты: под низом плиты, смотрит вниз.
+func _skin_ceil(room: String, x0: float, z0: float, x1: float, z1: float, y_bottom: float) -> void:
+	ModelLib.tex_box(self, Vector3(x1 - x0, 0.012, z1 - z0),
+		Vector3((x0 + x1) / 2.0, y_bottom - 0.006, (z0 + z1) / 2.0), "house/%s_ceil.png" % room, Color.WHITE, 0.3)
 
 func _floor_rect(x0: float, z0: float, x1: float, z1: float, y_top: float, mat: Material) -> void:
 	var s := MeshLib.solid_box(self, Vector3(x1 - x0, 0.2, z1 - z0),
@@ -271,14 +375,62 @@ func _lamp(pos: Vector3, color: Color, range_: float, energy: float) -> void:
 # ================================================================ каркас
 
 func _ext_walls() -> void:
-	# боковые
-	_wall_row_z(-HX, -HZ, HZ, FLOOR_Y, CEIL - FLOOR_Y, [], true)
-	_wall_row_z(HX, -HZ, HZ, FLOOR_Y, CEIL - FLOOR_Y, [], true)
-	# задний фасад: чёрный вход в кухню
-	_wall_row_x(HZ, -HX, HX, FLOOR_Y, CEIL - FLOOR_Y,
-		[[BACK_DOOR_X - 0.9, BACK_DOOR_X + 0.9]], true)
-	# передний фасад: парадные двери (перекрыты невидимой стеной — город в M2)
-	_wall_row_x(-HZ, -HX, HX, FLOOR_Y, CEIL - FLOOR_Y, [[-1.8, 1.8, 2.8]], true)
+	# Внешние стены двухслойные: наружная половина (T/2) — единый фасад на всю
+	# высоту, внутренняя — по этажам и комнатам со своими обоями. Стык этажей
+	# закрыт торцом плиты 2-го этажа. Зал двухсветный — его кусок кладётся
+	# одной панелью на всю высоту.
+	var q := T / 4.0
+	var ht := T / 2.0
+	var full := CEIL - FLOOR_Y
+	var out := _mat_wall_out
+	var kw := _skin("kitchen", "wall")
+	var dw := _skin("dining", "wall")
+	var sw := _skin("sewing", "wall")
+	var ew := _skin("entrance", "wall")
+	var cw := _skin("occult", "wall")
+	var vw := _skin("coven", "wall")
+	var aw := _skin("workshop", "wall")
+	var pw := _skin("potion", "wall")
+	var bw := _skin("bathroom", "wall")
+	var mw := _skin("master_bedroom", "wall")
+	var gw := _skin("guest_bedroom", "wall")
+	var lw := _skin("library", "wall")
+	# --- запад x=-22: наружный слой + столовая/швейная (1 эт), спальное крыло (2 эт)
+	_wall_row_z(-HX - q, -HZ, HZ, FLOOR_Y, full, [], true, out, out, ht)
+	_wall_row_z(-HX + q, -HZ, 0.0, FLOOR_Y, H1, [], true, sw, sw, ht)
+	_wall_row_z(-HX + q, 0.0, HZ, FLOOR_Y, H1, [], true, dw, dw, ht)
+	_wall_row_z(-HX + q, -HZ, HZ, F2, H2, [], true, mw, mw, ht)
+	# --- восток x=22: зельеварочная/амулетная (1 эт), спальни/библиотека (2 эт)
+	_wall_row_z(HX + q, -HZ, HZ, FLOOR_Y, full, [], true, out, out, ht)
+	_wall_row_z(HX - q, -HZ, 0.0, FLOOR_Y, H1, [], true, pw, pw, ht)
+	_wall_row_z(HX - q, 0.0, HZ, FLOOR_Y, H1, [], true, aw, aw, ht)
+	_wall_row_z(HX - q, -HZ, 3.0, F2, H2, [], true, gw, gw, ht)
+	_wall_row_z(HX - q, 3.0, HZ, F2, H2, [], true, lw, lw, ht)
+	# --- задний фасад z=10: чёрный вход в кухню (проём сквозь оба слоя)
+	var back_op := [[BACK_DOOR_X - 0.9, BACK_DOOR_X + 0.9]]
+	_wall_row_x(HZ + q, -HX, HX, FLOOR_Y, full, back_op, true, out, out, ht)
+	_wall_row_x(HZ - q, -HX, -WING_X, FLOOR_Y, H1, [], true, dw, dw, ht)
+	_wall_row_x(HZ - q, -WING_X, -HALL_HX, FLOOR_Y, H1, back_op, true, kw, kw, ht)
+	_wall_row_x(HZ - q, -HALL_HX, HALL_HX, FLOOR_Y, full, [], true, ew, ew, ht)
+	_wall_row_x(HZ - q, HALL_HX, WING_X, FLOOR_Y, H1, [], true, vw, vw, ht)
+	_wall_row_x(HZ - q, WING_X, HX, FLOOR_Y, H1, [], true, aw, aw, ht)
+	_wall_row_x(HZ - q, -HX, -WING_X, F2, H2, [], true, mw, mw, ht)
+	_wall_row_x(HZ - q, -WING_X, -HALL_HX, F2, H2, [], true, null, null, ht)
+	_wall_row_x(HZ - q, HALL_HX, HX, F2, H2, [], true, lw, lw, ht)
+	# --- передний фасад z=-10: парадные двери (перекрыты невидимой стеной — город в M2)
+	var front_op := [[-1.8, 1.8, 2.8]]
+	_wall_row_x(-HZ - q, -HX, HX, FLOOR_Y, full, front_op, true, out, out, ht)
+	_wall_row_x(-HZ + q, -HX, -WING_X, FLOOR_Y, H1, [], true, sw, sw, ht)
+	_wall_row_x(-HZ + q, -WING_X, -HALL_HX, FLOOR_Y, H1, [], true, cw, cw, ht)
+	_wall_row_x(-HZ + q, -HALL_HX, HALL_HX, FLOOR_Y, full, front_op, true, ew, ew, ht)
+	_wall_row_x(-HZ + q, HALL_HX, WING_X, FLOOR_Y, H1, [], true, cw, cw, ht)
+	_wall_row_x(-HZ + q, WING_X, HX, FLOOR_Y, H1, [], true, pw, pw, ht)
+	_wall_row_x(-HZ + q, -HX, -WING_X, F2, H2, [], true, mw, mw, ht)
+	_wall_row_x(-HZ + q, -WING_X, -11.5, F2, H2, [], true, bw, bw, ht)
+	_wall_row_x(-HZ + q, -11.5, -HALL_HX, F2, H2, [], true, cw, cw, ht)
+	_wall_row_x(-HZ + q, HALL_HX, 11.5, F2, H2, [], true, null, null, ht)
+	_wall_row_x(-HZ + q, 11.5, WING_X, F2, H2, [], true, bw, bw, ht)
+	_wall_row_x(-HZ + q, WING_X, HX, F2, H2, [], true, gw, gw, ht)
 	MeshLib.solid_invisible(self, Vector3(3.6, 2.8, 0.5), Vector3(0, FLOOR_Y + 1.4, -HZ))
 
 func _floors() -> void:
@@ -341,48 +493,66 @@ func _stairs_main() -> void:
 # ================================================================ стены этажей
 
 func _walls_f1() -> void:
-	# зал ↔ крылья
-	_wall_row_z(-HALL_HX, -HZ, HZ, FLOOR_Y, H1, [[-6.8, -5.0], [5.0, 6.8]])
-	_wall_row_z(HALL_HX, -HZ, HZ, FLOOR_Y, H1, [[-6.8, -5.0], [5.0, 6.8]])
+	var kw := _skin("kitchen", "wall")
+	var dw := _skin("dining", "wall")
+	var sw := _skin("sewing", "wall")
+	var ew := _skin("entrance", "wall")
+	var cw := _skin("occult", "wall")
+	var vw := _skin("coven", "wall")
+	var aw := _skin("workshop", "wall")
+	var pw := _skin("potion", "wall")
+	var bw := _skin("bathroom", "wall")
+	# зал ↔ крылья; ряды разрезаны на z=0 — по сторонам разные комнаты
+	_wall_row_z(-HALL_HX, -HZ, 0.0, FLOOR_Y, H1, [[-6.8, -5.0]], false, cw, ew)
+	_wall_row_z(-HALL_HX, 0.0, HZ, FLOOR_Y, H1, [[5.0, 6.8]], false, kw, ew)
+	_wall_row_z(HALL_HX, -HZ, 0.0, FLOOR_Y, H1, [[-6.8, -5.0]], false, ew, cw)
+	_wall_row_z(HALL_HX, 0.0, HZ, FLOOR_Y, H1, [[5.0, 6.8]], false, ew, vw)
 	# запад: север/юг (кухня+столовая | коридор+швейная)
-	_wall_row_x(0.0, -HX, -HALL_HX, FLOOR_Y, H1, [[-13.0, -11.2]])
-	_wall_row_z(-WING_X, 0.0, HZ, FLOOR_Y, H1, [[4.0, 5.8]])          # кухня ↔ столовая
-	_wall_row_z(-WING_X, -HZ, 0.0, FLOOR_Y, H1, [[-5.8, -4.0]])       # коридор ↔ швейная
+	_wall_row_x(0.0, -HX, -WING_X, FLOOR_Y, H1, [], false, sw, dw)
+	_wall_row_x(0.0, -WING_X, -HALL_HX, FLOOR_Y, H1, [[-13.0, -11.2]], false, cw, kw)
+	_wall_row_z(-WING_X, 0.0, HZ, FLOOR_Y, H1, [[4.0, 5.8]], false, dw, kw)         # кухня ↔ столовая
+	_wall_row_z(-WING_X, -HZ, 0.0, FLOOR_Y, H1, [[-5.8, -4.0]], false, sw, cw)      # коридор ↔ швейная
 	# туалет W1 (угол коридора)
-	_wall_row_z(-11.5, -HZ, -7.0, FLOOR_Y, H1)
-	_wall_row_x(-7.0, -WING_X, -11.5, FLOOR_Y, H1, [[-13.6, -12.4]])
-	_tile(-WING_X, -HZ, -11.5, -7.0, FLOOR_Y)
+	_wall_row_z(-11.5, -HZ, -7.0, FLOOR_Y, H1, [], false, bw, cw)
+	_wall_row_x(-7.0, -WING_X, -11.5, FLOOR_Y, H1, [[-13.6, -12.4]], false, bw, cw)
 	# восток: север/юг
-	_wall_row_x(0.0, HALL_HX, HX, FLOOR_Y, H1, [[11.2, 13.0]])
-	_wall_row_z(WING_X, 0.0, HZ, FLOOR_Y, H1, [[4.0, 5.8]])           # шабаш ↔ амулетная
+	_wall_row_x(0.0, HALL_HX, WING_X, FLOOR_Y, H1, [[11.2, 13.0]], false, cw, vw)
+	_wall_row_x(0.0, WING_X, HX, FLOOR_Y, H1, [], false, pw, aw)
+	_wall_row_z(WING_X, 0.0, HZ, FLOOR_Y, H1, [[4.0, 5.8]], false, vw, aw)          # шабаш ↔ амулетная
 	# зельеварочная: дверь + вентиляция у пола (проём высотой 0.55)
-	_wall_row_z(WING_X, -HZ, 0.0, FLOOR_Y, H1, [[-5.8, -4.0], [-2.4, -1.6, 0.55]])
+	_wall_row_z(WING_X, -HZ, 0.0, FLOOR_Y, H1, [[-5.8, -4.0], [-2.4, -1.6, 0.55]], false, cw, pw)
 	# туалет E1
-	_wall_row_z(11.5, -HZ, -7.0, FLOOR_Y, H1)
-	_wall_row_x(-7.0, 11.5, WING_X, FLOOR_Y, H1, [[12.4, 13.6]])
-	_tile(11.5, -HZ, WING_X, -7.0, FLOOR_Y)
-	_tile(WING_X, -HZ, HX, 0.0, FLOOR_Y)   # каменный пол зельеварочной
+	_wall_row_z(11.5, -HZ, -7.0, FLOOR_Y, H1, [], false, cw, bw)
+	_wall_row_x(-7.0, 11.5, WING_X, FLOOR_Y, H1, [[12.4, 13.6]], false, bw, cw)
 
 func _walls_f2() -> void:
-	# зал ↔ крылья: глухо над пустотой, проёмы с балкона
-	_wall_row_z(-HALL_HX, -HZ, HZ, F2, H2, [[6.0, 7.8]])
-	_wall_row_z(HALL_HX, -HZ, HZ, F2, H2, [[6.0, 7.8]])
-	# --- запад
-	_wall_row_x(4.0, -WING_X, -HALL_HX, F2, H2, [[-11.0, -9.2]])      # гостиная ↔ коридор
-	_wall_row_z(-WING_X, 4.0, HZ, F2, H2, [[5.2, 7.0]])               # гостиная ↔ спальня 1
-	_wall_row_z(-WING_X, -2.0, 4.0, F2, H2, [[0.0, 1.8]])             # коридор ↔ спальня 2
-	_wall_row_z(-WING_X, -HZ, -2.0, F2, H2, [[-5.0, -3.2]])           # коридор ↔ спальня 3
-	_wall_row_x(-6.5, -WING_X, -11.5, F2, H2, [[-13.6, -12.4]])       # туалет W2
-	_wall_row_z(-11.5, -HZ, -6.5, F2, H2)
-	_tile(-WING_X, -HZ, -11.5, -6.5, F2)
-	# --- восток
-	_wall_row_x(3.0, HALL_HX, HX, F2, H2, [[8.5, 10.3]])              # библиотека ↔ коридор
-	_wall_row_z(WING_X, -2.0, 3.0, F2, H2, [[0.0, 1.8]])              # коридор ↔ спальня 4
-	_wall_row_z(WING_X, -HZ, -2.0, F2, H2, [[-5.0, -3.2]])            # коридор ↔ спальня 5
-	_wall_row_x(-6.5, 11.5, WING_X, F2, H2, [[12.4, 13.6]])           # туалет E2
-	_wall_row_z(11.5, -HZ, -7.5, F2, H2)
-	_wall_row_x(-7.5, HALL_HX, 11.5, F2, H2, [[8.4, 9.6]])            # кладовка мётел
-	_tile(11.5, -HZ, WING_X, -6.5, F2)
+	var ew := _skin("entrance", "wall")
+	var cw := _skin("occult", "wall")
+	var bw := _skin("bathroom", "wall")
+	var mw := _skin("master_bedroom", "wall")
+	var gw := _skin("guest_bedroom", "wall")
+	var lw := _skin("library", "wall")
+	# зал ↔ крылья: глухо над пустотой, проёмы с балкона; запад — гостиная без набора
+	_wall_row_z(-HALL_HX, -HZ, 4.0, F2, H2, [], false, cw, ew)
+	_wall_row_z(-HALL_HX, 4.0, HZ, F2, H2, [[6.0, 7.8]], false, null, ew)
+	_wall_row_z(HALL_HX, -HZ, -7.5, F2, H2, [], false, ew, null)
+	_wall_row_z(HALL_HX, -7.5, 3.0, F2, H2, [], false, ew, cw)
+	_wall_row_z(HALL_HX, 3.0, HZ, F2, H2, [[6.0, 7.8]], false, ew, lw)
+	# --- запад: всё спальное крыло x -22..-15 — хозяйская анфилада (master)
+	_wall_row_x(4.0, -WING_X, -HALL_HX, F2, H2, [[-11.0, -9.2]], false, cw, null)   # гостиная ↔ коридор
+	_wall_row_z(-WING_X, 4.0, HZ, F2, H2, [[5.2, 7.0]], false, mw, null)            # гостиная ↔ спальня 1
+	_wall_row_z(-WING_X, -2.0, 4.0, F2, H2, [[0.0, 1.8]], false, mw, cw)            # коридор ↔ спальня 2
+	_wall_row_z(-WING_X, -HZ, -2.0, F2, H2, [[-5.0, -3.2]], false, mw, cw)          # коридор ↔ спальня 3
+	_wall_row_x(-6.5, -WING_X, -11.5, F2, H2, [[-13.6, -12.4]], false, bw, cw)      # туалет W2
+	_wall_row_z(-11.5, -HZ, -6.5, F2, H2, [], false, bw, cw)
+	# --- восток: спальни 4-5 — гостевые
+	_wall_row_x(3.0, HALL_HX, WING_X, F2, H2, [[8.5, 10.3]], false, cw, lw)         # библиотека ↔ коридор
+	_wall_row_x(3.0, WING_X, HX, F2, H2, [], false, gw, lw)
+	_wall_row_z(WING_X, -2.0, 3.0, F2, H2, [[0.0, 1.8]], false, cw, gw)             # коридор ↔ спальня 4
+	_wall_row_z(WING_X, -HZ, -2.0, F2, H2, [[-5.0, -3.2]], false, cw, gw)           # коридор ↔ спальня 5
+	_wall_row_x(-6.5, 11.5, WING_X, F2, H2, [[12.4, 13.6]], false, bw, cw)          # туалет E2
+	_wall_row_z(11.5, -HZ, -7.5, F2, H2, [], false, null, bw)
+	_wall_row_x(-7.5, HALL_HX, 11.5, F2, H2, [[8.4, 9.6]], false, null, cw)         # кладовка мётел
 
 # ================================================================ парадный зал
 

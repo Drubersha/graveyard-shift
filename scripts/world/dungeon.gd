@@ -18,11 +18,20 @@ var spawns := {}
 
 var _mat_wall: StandardMaterial3D
 var _mat_floor: StandardMaterial3D
+var _mat_ceil: StandardMaterial3D
+var _wine_wall: StandardMaterial3D
+var _wine_floor: StandardMaterial3D
+var _wine_ceil: StandardMaterial3D
 
 func _ready() -> void:
 	add_to_group("dungeon")
-	_mat_wall = ModelLib.tex_mat("stone_light.png", Color(0.3, 0.3, 0.37), 0.35)
-	_mat_floor = ModelLib.tex_mat("stone_light.png", Color(0.32, 0.31, 0.36), 0.3)
+	# наборы Meshy «текстуры дома»: погреб — свой, ритуальная и коридор — dungeon
+	_mat_wall = ModelLib.tex_mat("house/dungeon_wall.png", Color.WHITE, 0.35)
+	_mat_floor = ModelLib.tex_mat("house/dungeon_floor.png", Color.WHITE, 0.4)
+	_mat_ceil = ModelLib.tex_mat("house/dungeon_ceil.png", Color.WHITE, 0.3)
+	_wine_wall = ModelLib.tex_mat("house/wine_cellar_wall.png", Color.WHITE, 0.35)
+	_wine_floor = ModelLib.tex_mat("house/wine_cellar_floor.png", Color.WHITE, 0.4)
+	_wine_ceil = ModelLib.tex_mat("house/wine_cellar_ceil.png", Color.WHITE, 0.3)
 	_shell()
 	_cellar_room()
 	_ritual_room()
@@ -32,40 +41,42 @@ func _ready() -> void:
 
 # ---------------------------------------------------------------- каркас
 
-func _floor_rect(r: Rect2) -> void:
+func _floor_rect(r: Rect2, mat: Material = null) -> void:
 	var s := MeshLib.solid_box(self, Vector3(r.size.x, 0.3, r.size.y),
 		Vector3(r.position.x + r.size.x / 2.0, FLOOR_Y - 0.15, r.position.y + r.size.y / 2.0), Color.WHITE)
 	for c in s.get_children():
 		if c is MeshInstance3D:
-			(c as MeshInstance3D).material_override = _mat_floor
+			(c as MeshInstance3D).material_override = mat if mat else _mat_floor
 
-func _wall(size: Vector3, pos: Vector3) -> void:
+func _wall(size: Vector3, pos: Vector3, mat: Material = null) -> void:
 	var b := MeshLib.solid_box(self, size, pos, Color.WHITE)
 	for c in b.get_children():
 		if c is MeshInstance3D:
-			(c as MeshInstance3D).material_override = _mat_wall
+			(c as MeshInstance3D).material_override = mat if mat else _mat_wall
 
 ## Потолок с коллизией: иначе камера-пружина протыкает свод и смотрит из-за него.
-func _ceiling(r: Rect2) -> void:
-	var b := MeshLib.solid_box(self, Vector3(r.size.x, 0.3, r.size.y),
-		Vector3(r.position.x + r.size.x / 2.0, H + 0.15, r.position.y + r.size.y / 2.0), Color.WHITE)
+## Плита шире комнаты на толщину стен — иначе над верхом стены остаётся щель в небо.
+func _ceiling(r: Rect2, mat: Material = null) -> void:
+	var g := r.grow(T)
+	var b := MeshLib.solid_box(self, Vector3(g.size.x, 0.3, g.size.y),
+		Vector3(g.position.x + g.size.x / 2.0, H + 0.15, g.position.y + g.size.y / 2.0), Color.WHITE)
 	for c in b.get_children():
 		if c is MeshInstance3D:
-			(c as MeshInstance3D).material_override = _mat_wall
+			(c as MeshInstance3D).material_override = mat if mat else _mat_ceil
 
 func _shell() -> void:
-	_floor_rect(CELLAR)
+	_floor_rect(CELLAR, _wine_floor)
 	_floor_rect(RITUAL)
 	_floor_rect(Rect2(-6.0, CORR_Z0, 12.0, CORR_Z1 - CORR_Z0))
-	_ceiling(CELLAR)
+	_ceiling(CELLAR, _wine_ceil)
 	_ceiling(RITUAL)
 	_ceiling(Rect2(-6.0, CORR_Z0, 12.0, CORR_Z1 - CORR_Z0))
 	# стены погреба (проём в коридор в стене x=-6)
-	_wall(Vector3(T, H, CELLAR.size.y), Vector3(CELLAR.position.x, H / 2.0, 2.0))
-	_wall(Vector3(CELLAR.size.x, H, T), Vector3(-11.5, H / 2.0, CELLAR.position.y))
-	_wall(Vector3(CELLAR.size.x, H, T), Vector3(-11.5, H / 2.0, CELLAR.position.y + CELLAR.size.y))
-	_wall(Vector3(T, H, CORR_Z0 - CELLAR.position.y), Vector3(-6.0, H / 2.0, (CELLAR.position.y + CORR_Z0) / 2.0))
-	_wall(Vector3(T, H, CELLAR.position.y + CELLAR.size.y - CORR_Z1), Vector3(-6.0, H / 2.0, (CORR_Z1 + CELLAR.position.y + CELLAR.size.y) / 2.0))
+	_wall(Vector3(T, H, CELLAR.size.y), Vector3(CELLAR.position.x, H / 2.0, 2.0), _wine_wall)
+	_wall(Vector3(CELLAR.size.x, H, T), Vector3(-11.5, H / 2.0, CELLAR.position.y), _wine_wall)
+	_wall(Vector3(CELLAR.size.x, H, T), Vector3(-11.5, H / 2.0, CELLAR.position.y + CELLAR.size.y), _wine_wall)
+	_wall(Vector3(T, H, CORR_Z0 - CELLAR.position.y), Vector3(-6.0, H / 2.0, (CELLAR.position.y + CORR_Z0) / 2.0), _wine_wall)
+	_wall(Vector3(T, H, CELLAR.position.y + CELLAR.size.y - CORR_Z1), Vector3(-6.0, H / 2.0, (CORR_Z1 + CELLAR.position.y + CELLAR.size.y) / 2.0), _wine_wall)
 	# стены подземелья (зеркально)
 	_wall(Vector3(T, H, RITUAL.size.y), Vector3(RITUAL.position.x + RITUAL.size.x, H / 2.0, 2.0))
 	_wall(Vector3(RITUAL.size.x, H, T), Vector3(11.5, H / 2.0, RITUAL.position.y))
