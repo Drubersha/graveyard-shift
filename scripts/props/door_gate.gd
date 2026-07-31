@@ -84,26 +84,13 @@ func _build(color: Color) -> void:
 			vis.scale = Vector3(_width / model_raw.x, sy, sy)
 			# у Meshy-дверей геометрия односторонняя: без выключенного кулинга
 			# полотно прозрачно со спины и сквозь проём видно соседнюю комнату
-			_make_double_sided(vis)
+			ModelLib.make_double_sided(vis)
 		else:
 			var nat_w := 3.48 if model_path.contains("Double") else 1.74
 			vis = ModelLib.visual(_panel, model_path, Vector3.ZERO, 180.0)
 			vis.scale = Vector3(_width / nat_w, _height / 4.19, 0.7)
 		var box := ModelLib.merged_aabb(vis)
 		vis.position -= Vector3(box.position.x, box.position.y, box.position.z + box.size.z / 2.0)
-
-static func _make_double_sided(node: Node) -> void:
-	if node is MeshInstance3D:
-		var mi := node as MeshInstance3D
-		if mi.mesh:
-			for i in mi.mesh.get_surface_count():
-				var m := mi.get_active_material(i)
-				if m is BaseMaterial3D:
-					var dup := (m as BaseMaterial3D).duplicate() as BaseMaterial3D
-					dup.cull_mode = BaseMaterial3D.CULL_DISABLED
-					mi.set_surface_override_material(i, dup)
-	for c in node.get_children():
-		_make_double_sided(c)
 
 func get_prompt() -> String:
 	if locked:

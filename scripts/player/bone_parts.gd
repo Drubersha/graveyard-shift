@@ -39,6 +39,23 @@ const MODEL := {
 	"leg_r": "Skeleton_LegR_own.gltf",
 }
 
+# Модели Meshy из папки «Скелет» (промер probe_model.gd 2026-07-31): origin в
+# ЦЕНТРЕ AABB, высота нормирована к ~1.9, фронт +Z (у тела фронт -Z → разворот
+# на 180). Текстуры свои — reskin к ним НЕ применяется. Нога левая — в штанине,
+# правая — голая кость: гардероб подъедала моль, вопросы к ведьме.
+# Записи: [путь, size_y, min_y сырого AABB, целевая высота, якорь].
+# Якорь: "center" — origin детали в центре модели (череп);
+# "bottom" — низ модели на origin (торс: origin в основании таза);
+# "top" — верх модели на origin (рука/нога: origin в суставе сверху).
+const MESHY := {
+	"skull": ["res://assets/models/147_Bones_Skull.glb", 1.541, -0.768, 0.34, "center"],
+	"torso": ["res://assets/models/148_Bones_Torso.glb", 1.877, -0.950, 0.78, "bottom"],
+	"arm_l": ["res://assets/models/149_Bones_ArmL.glb", 1.895, -0.949, 0.77, "top"],
+	"arm_r": ["res://assets/models/150_Bones_ArmR.glb", 1.897, -0.950, 0.77, "top"],
+	"leg_l": ["res://assets/models/151_Bones_LegTrousers.glb", 1.888, -0.945, 0.82, "top"],
+	"leg_r": ["res://assets/models/152_Bones_LegBare.glb", 1.897, -0.950, 0.82, "top"],
+}
+
 const LABEL := {
 	"skull": "череп",
 	"torso": "торс",
@@ -60,10 +77,31 @@ const MOUNT := {
 }
 
 ## Собрать деталь под `parent`. Возвращает корень детали (origin — в суставе).
+## Приоритет: модель Meshy игрока → старая _own.gltf → процедурный фолбэк.
+## Meshy выше _own сознательно: _own — бленд-копия процедурного скелета,
+## а набор Meshy — присланная замена всего облика.
 static func build(parent: Node, id: String) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Part_" + id
 	parent.add_child(root)
+	if MESHY.has(id) and ResourceLoader.exists(MESHY[id][0]):
+		var m: Array = MESHY[id]
+		var inst := (load(m[0]) as PackedScene).instantiate() as Node3D
+		root.add_child(inst)
+		var sc: float = m[3] / float(m[1])
+		inst.scale = Vector3.ONE * sc
+		inst.rotation_degrees.y = 180.0
+		var min_y: float = m[2]
+		match m[4]:
+			"bottom":
+				inst.position.y = -min_y * sc
+			"top":
+				inst.position.y = -(min_y + float(m[1])) * sc
+			"center":
+				inst.position.y = -(min_y + float(m[1]) * 0.5) * sc
+		# спины у Meshy-мешей бывают односторонними, а детали видны со всех сторон
+		ModelLib.make_double_sided(inst)
+		return root
 	var path := MODEL_DIR + str(MODEL.get(id, ""))
 	if ResourceLoader.exists(path):
 		var ps := load(path) as PackedScene

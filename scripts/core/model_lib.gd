@@ -69,6 +69,21 @@ static func grab(parent: Node, path: String, pos: Vector3, mass := 2.0, rot_y :=
 	body.add_child(col)
 	return body
 
+## Выключить отсечение спинок у всех материалов ветки: у Meshy-моделей меши
+## бывают односторонними, и сзади такая геометрия прозрачна.
+static func make_double_sided(node: Node) -> void:
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		if mi.mesh:
+			for i in mi.mesh.get_surface_count():
+				var m := mi.get_active_material(i)
+				if m is BaseMaterial3D:
+					var dup := (m as BaseMaterial3D).duplicate() as BaseMaterial3D
+					dup.cull_mode = BaseMaterial3D.CULL_DISABLED
+					mi.set_surface_override_material(i, dup)
+	for c in node.get_children():
+		make_double_sided(c)
+
 static func merged_aabb(node: Node) -> AABB:
 	return _merge_aabb(node, Transform3D.IDENTITY)
 
