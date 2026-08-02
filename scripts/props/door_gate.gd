@@ -18,6 +18,7 @@ var _panel: StaticBody3D
 var _width := 0.9
 var _height := 2.0
 var _closed_yaw := 0.0
+var _overscan := 1.0
 var model_path := ""   # модель двери из хауспака вместо процедурной панели
 var model_raw := Vector3.ZERO   # сырой AABB glb-модели (Meshy): включает ветку make_glb
 
@@ -45,14 +46,18 @@ static func make_model(parent: Node, pos: Vector3, rot_y: float, width: float, h
 
 ## Дверь из glb-модели с центральным origin (Meshy): raw — промеренный AABB.
 ## Створка растягивается на весь проём width x height, петля — в origin узла.
+## overscan > 1 растягивает полотно с запасом и центрирует его в проёме: AABB
+## модели включает шипы навершия и ручку, из-за чего само полотно уже проёма —
+## у наружных дверей в щели по периметру сквозило небо.
 static func make_glb(parent: Node, pos: Vector3, rot_y: float, width: float, height: float,
-		path: String, raw: Vector3, swing_deg := 105.0) -> DoorGate:
+		path: String, raw: Vector3, swing_deg := 105.0, overscan := 1.0) -> DoorGate:
 	var d := DoorGate.new()
 	d._width = width
 	d._height = height
 	d.model_path = path
 	d.model_raw = raw
 	d.swing = swing_deg
+	d._overscan = overscan
 	d.position = pos
 	d.rotation_degrees = Vector3(0, rot_y, 0)
 	parent.add_child(d)
@@ -83,8 +88,8 @@ func _build(color: Color) -> void:
 		var vis: Node3D
 		if model_raw != Vector3.ZERO:
 			vis = ModelLib.visual(_panel, model_path, Vector3.ZERO, 0.0)
-			var sy := _height / model_raw.y
-			vis.scale = Vector3(_width / model_raw.x, sy, sy)
+			var sy := _height * _overscan / model_raw.y
+			vis.scale = Vector3(_width * _overscan / model_raw.x, sy, sy)
 			# у Meshy-дверей геометрия односторонняя: без выключенного кулинга
 			# полотно прозрачно со спины и сквозь проём видно соседнюю комнату
 			ModelLib.make_double_sided(vis)
@@ -94,6 +99,8 @@ func _build(color: Color) -> void:
 			vis.scale = Vector3(_width / nat_w, _height / 4.19, 0.7)
 		var box := ModelLib.merged_aabb(vis)
 		vis.position -= Vector3(box.position.x, box.position.y, box.position.z + box.size.z / 2.0)
+		# запас растяжки поровну на обе стороны проёма; по высоте — весь вверх
+		vis.position.x -= _width * (_overscan - 1.0) * 0.5
 
 func get_prompt() -> String:
 	if portal_link:
