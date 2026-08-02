@@ -103,6 +103,9 @@ static func build(parent: Node, id: String) -> Node3D:
 				inst.position.y = -(min_y + float(m[1])) * sc
 			"center":
 				inst.position.y = -(min_y + float(m[1]) * 0.5) * sc
+		if id == "skull":
+			# по фидбеку: голова сидела глубоко и низко — чуть вперёд (-Z тела) и вверх
+			inst.position += Vector3(0, 0.06, -0.06)
 		# спины у Meshy-мешей бывают односторонними, а детали видны со всех сторон
 		ModelLib.make_double_sided(inst)
 		return root

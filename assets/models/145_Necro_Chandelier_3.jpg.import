@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://boe7n4wynemsc"
-path="res://.godot/imported/145_Necro_Chandelier_3.jpg-961d9049013053b5bdacc0487e51c3e8.ctex"
+path.s3tc="res://.godot/imported/145_Necro_Chandelier_3.jpg-961d9049013053b5bdacc0487e51c3e8.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "feeec899b7d8a1ad820e85d49a047382"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/145_Necro_Chandelier_3.jpg"
-dest_files=["res://.godot/imported/145_Necro_Chandelier_3.jpg-961d9049013053b5bdacc0487e51c3e8.ctex"]
+dest_files=["res://.godot/imported/145_Necro_Chandelier_3.jpg-961d9049013053b5bdacc0487e51c3e8.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bxav4ps2h1jdw"
-path="res://.godot/imported/146_Necro_Sconce_0.jpg-3bd9dc2ee349fbf8a13b1747ef40e758.ctex"
+path.s3tc="res://.godot/imported/146_Necro_Sconce_0.jpg-3bd9dc2ee349fbf8a13b1747ef40e758.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d3323ea7d43e6021f8ab702751f7d5f7"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/146_Necro_Sconce_0.jpg"
-dest_files=["res://.godot/imported/146_Necro_Sconce_0.jpg-3bd9dc2ee349fbf8a13b1747ef40e758.ctex"]
+dest_files=["res://.godot/imported/146_Necro_Sconce_0.jpg-3bd9dc2ee349fbf8a13b1747ef40e758.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

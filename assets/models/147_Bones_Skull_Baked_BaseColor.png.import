@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2ho6wpya4hm8"
-path="res://.godot/imported/147_Bones_Skull_Baked_BaseColor.png-2dcbb5b92c05c56b1280e947d36394c2.ctex"
+path.s3tc="res://.godot/imported/147_Bones_Skull_Baked_BaseColor.png-2dcbb5b92c05c56b1280e947d36394c2.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0047944540daef3e2595f3b993c15378"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/147_Bones_Skull_Baked_BaseColor.png"
-dest_files=["res://.godot/imported/147_Bones_Skull_Baked_BaseColor.png-2dcbb5b92c05c56b1280e947d36394c2.ctex"]
+dest_files=["res://.godot/imported/147_Bones_Skull_Baked_BaseColor.png-2dcbb5b92c05c56b1280e947d36394c2.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

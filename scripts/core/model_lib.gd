@@ -49,6 +49,24 @@ static func solid(parent: Node, path: String, pos: Vector3, rot_y := 0.0, scale 
 	body.add_child(col)
 	return body
 
+## solid с НЕравномерным масштабом по осям: подгонка пропорций модели под
+## соседнюю мебель (например, сплющить высокий навесной шкаф до ширины тумбы).
+static func solid_xyz(parent: Node, path: String, pos: Vector3, rot_y: float, scale3: Vector3) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.position = pos
+	body.rotation_degrees = Vector3(0, rot_y, 0)
+	parent.add_child(body)
+	var vis := visual(body, path, Vector3.ZERO, 0.0, 1.0)
+	vis.scale = scale3
+	var aabb := merged_aabb(vis)
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = aabb.size.max(Vector3(0.05, 0.05, 0.05)) * 0.92
+	col.shape = shape
+	col.position = aabb.position + aabb.size * 0.5
+	body.add_child(col)
+	return body
+
 ## Хватаемая физическая модель (зелья, книги, черепа, вёдра).
 ## Кладёт в meta("item_label") подпись вида «042_Barrel» для интерфейса.
 static func grab(parent: Node, path: String, pos: Vector3, mass := 2.0, rot_y := 0.0, scale := 1.0) -> RigidBody3D:

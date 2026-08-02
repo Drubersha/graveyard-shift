@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://mbd7x37n2ny"
-path="res://.godot/imported/151_Bones_LegTrousers_Baked_MetallicRoughness.png-2822d4a87e005fd2aa35c721b5b73b05.ctex"
+path.s3tc="res://.godot/imported/151_Bones_LegTrousers_Baked_MetallicRoughness.png-2822d4a87e005fd2aa35c721b5b73b05.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "442b2e65c2026fec529416105618fa9b"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/151_Bones_LegTrousers_Baked_MetallicRoughness.png"
-dest_files=["res://.godot/imported/151_Bones_LegTrousers_Baked_MetallicRoughness.png-2822d4a87e005fd2aa35c721b5b73b05.ctex"]
+dest_files=["res://.godot/imported/151_Bones_LegTrousers_Baked_MetallicRoughness.png-2822d4a87e005fd2aa35c721b5b73b05.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

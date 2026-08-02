@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdne0vwth55gk"
-path="res://.godot/imported/144_Necro_InteriorDoor_1.jpg-94fb5f3cdb0fdcb3f46977ec484d3688.ctex"
+path.s3tc="res://.godot/imported/144_Necro_InteriorDoor_1.jpg-94fb5f3cdb0fdcb3f46977ec484d3688.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0ab4cd94a2287519e255f4e743ad5773"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/144_Necro_InteriorDoor_1.jpg"
-dest_files=["res://.godot/imported/144_Necro_InteriorDoor_1.jpg-94fb5f3cdb0fdcb3f46977ec484d3688.ctex"]
+dest_files=["res://.godot/imported/144_Necro_InteriorDoor_1.jpg-94fb5f3cdb0fdcb3f46977ec484d3688.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

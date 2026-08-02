@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://brd80kuknnxa0"
-path="res://.godot/imported/141_Necro_Stove_0.jpg-a39f6fef1787720a464e837d18e5aa36.ctex"
+path.s3tc="res://.godot/imported/141_Necro_Stove_0.jpg-a39f6fef1787720a464e837d18e5aa36.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "87fb16976ab041b64f96998708131f81"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/141_Necro_Stove_0.jpg"
-dest_files=["res://.godot/imported/141_Necro_Stove_0.jpg-a39f6fef1787720a464e837d18e5aa36.ctex"]
+dest_files=["res://.godot/imported/141_Necro_Stove_0.jpg-a39f6fef1787720a464e837d18e5aa36.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

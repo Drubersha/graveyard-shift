@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b7n5f4i6n115o"
-path="res://.godot/imported/139_Necro_Icebox_1.jpg-2ebb599780b7b6ed300683eaf5525c9c.ctex"
+path.s3tc="res://.godot/imported/139_Necro_Icebox_1.jpg-2ebb599780b7b6ed300683eaf5525c9c.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0b9986f6bed9de59a22248a3c0decf80"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/139_Necro_Icebox_1.jpg"
-dest_files=["res://.godot/imported/139_Necro_Icebox_1.jpg-2ebb599780b7b6ed300683eaf5525c9c.ctex"]
+dest_files=["res://.godot/imported/139_Necro_Icebox_1.jpg-2ebb599780b7b6ed300683eaf5525c9c.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
