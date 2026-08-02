@@ -23,21 +23,12 @@ func _ready() -> void:
 	if model_path == "":
 		_build_procedural()
 	else:
-		var vis := ModelLib.visual(self, model_path, Vector3.ZERO, model_rot, model_scale)
-		var aabb := ModelLib.merged_aabb(vis)  # масштаб уже внутри
+		# коллизия — только до варочной (полный AABB с вытяжкой отшвыривал бы
+		# положенные на плиту ингредиенты)
+		var aabb := ModelLib.prop_visual(self, model_path, model_rot, model_scale)
 		top_y = top_y_override if not is_nan(top_y_override) \
 			else aabb.position.y + aabb.size.y * 0.98
-		# Коллизия — только до варочной поверхности: если у модели сзади вытяжка,
-		# полный AABB задирает крышу box-коллизии выше стола, и положенные на плиту
-		# ингредиенты оказываются ВНУТРИ коллизии — физика их выкидывает.
-		var col_h := maxf(top_y - aabb.position.y, 0.3)
-		var col := CollisionShape3D.new()
-		var shape := BoxShape3D.new()
-		shape.size = Vector3(maxf(aabb.size.x * 0.95, 0.3), col_h, maxf(aabb.size.z * 0.95, 0.3))
-		col.shape = shape
-		col.position = Vector3(aabb.position.x + aabb.size.x * 0.5,
-			aabb.position.y + col_h * 0.5, aabb.position.z + aabb.size.z * 0.5)
-		add_child(col)
+		ModelLib.cap_collision(self, top_y)
 	# зелёное ведьминское пламя над конфоркой (жутко, но работает)
 	_flame = MeshLib.sphere(self, 0.08, Vector3(0, top_y + 0.04, 0), MeshLib.ACCENT, 0.5)
 	_flame.material_override = MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)

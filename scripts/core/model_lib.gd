@@ -32,6 +32,33 @@ static func visual(parent: Node, path: String, pos: Vector3, rot_y := 0.0, scale
 	parent.add_child(node)
 	return node
 
+## Бокс-коллизия телу по AABB визуала (единственное место, где она строится).
+## merged_aabb уже включает масштаб визуала — второй раз не умножать.
+static func add_box_collider(body: PhysicsBody3D, aabb: AABB, shrink := 0.92) -> CollisionShape3D:
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = aabb.size.max(Vector3(0.05, 0.05, 0.05)) * shrink
+	col.shape = shape
+	col.position = aabb.position + aabb.size * 0.5
+	body.add_child(col)
+	return col
+
+## Обрезать box-коллизию тела по верхней плоскости (top_local — в системе узла).
+## Для мебели, у которой выше рабочей поверхности декор (вытяжка, кран, свечи):
+## полный AABB отшвыривал бы предметы, положенные на столешницу.
+static func cap_collision(body: PhysicsBody3D, top_local: float) -> void:
+	for c in body.get_children():
+		if c is CollisionShape3D:
+			var col := c as CollisionShape3D
+			var box := col.shape as BoxShape3D
+			if box == null:
+				return
+			var bottom := col.position.y - box.size.y * 0.5
+			var new_h := maxf(top_local - bottom, 0.2)
+			box.size = Vector3(box.size.x, new_h, box.size.z)
+			col.position.y = bottom + new_h * 0.5
+			return
+
 ## Модель со статичной коллизией по AABB (мебель, сантехника, верстаки).
 static func solid(parent: Node, path: String, pos: Vector3, rot_y := 0.0, scale := 1.0) -> StaticBody3D:
 	var body := StaticBody3D.new()
@@ -39,14 +66,7 @@ static func solid(parent: Node, path: String, pos: Vector3, rot_y := 0.0, scale 
 	body.rotation_degrees = Vector3(0, rot_y, 0)
 	parent.add_child(body)
 	var vis := visual(body, path, Vector3.ZERO, 0.0, scale)
-	# merged_aabb уже включает масштаб визуала — второй раз не умножать
-	var aabb := merged_aabb(vis)
-	var col := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = aabb.size.max(Vector3(0.05, 0.05, 0.05)) * 0.92
-	col.shape = shape
-	col.position = aabb.position + aabb.size * 0.5
-	body.add_child(col)
+	add_box_collider(body, merged_aabb(vis))
 	return body
 
 ## solid с НЕравномерным масштабом по осям: подгонка пропорций модели под
@@ -58,13 +78,7 @@ static func solid_xyz(parent: Node, path: String, pos: Vector3, rot_y: float, sc
 	parent.add_child(body)
 	var vis := visual(body, path, Vector3.ZERO, 0.0, 1.0)
 	vis.scale = scale3
-	var aabb := merged_aabb(vis)
-	var col := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = aabb.size.max(Vector3(0.05, 0.05, 0.05)) * 0.92
-	col.shape = shape
-	col.position = aabb.position + aabb.size * 0.5
-	body.add_child(col)
+	add_box_collider(body, merged_aabb(vis))
 	return body
 
 ## Хватаемая физическая модель (зелья, книги, черепа, вёдра).
@@ -78,14 +92,20 @@ static func grab(parent: Node, path: String, pos: Vector3, mass := 2.0, rot_y :=
 	body.set_meta("item_label", ItemCatalog.label(path))
 	parent.add_child(body)
 	var vis := visual(body, path, Vector3.ZERO, 0.0, scale)
-	var aabb := merged_aabb(vis)
-	var col := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = aabb.size.max(Vector3(0.05, 0.05, 0.05)) * 0.9
-	col.shape = shape
-	col.position = aabb.position + aabb.size * 0.5
-	body.add_child(col)
+	add_box_collider(body, merged_aabb(vis), 0.9)
 	return body
+
+## Визуал пропса с коллизией до рабочей поверхности: общий путь холодильника,
+## плиты и мойки. cap_local режет бокс по высоте в системе узла (INF — не резать).
+## Возвращает AABB визуала — из него пропсы берут свои рабочие высоты.
+static func prop_visual(body: PhysicsBody3D, path: String, rot_y: float, scale: float,
+		cap_local := INF) -> AABB:
+	var vis := visual(body, path, Vector3.ZERO, rot_y, scale)
+	var aabb := merged_aabb(vis)
+	add_box_collider(body, aabb, 0.95)
+	if cap_local < aabb.position.y + aabb.size.y:
+		cap_collision(body, cap_local)
+	return aabb
 
 ## Выключить отсечение спинок у всех материалов ветки: у Meshy-моделей меши
 ## бывают односторонними, и сзади такая геометрия прозрачна.
@@ -403,7 +423,7 @@ static func grave(parent: Node, name: String, pos: Vector3, rot_y := 0.0, scale 
 		mat.normal_enabled = true
 		mat.normal_texture = load(nrm)
 	mat.roughness = 0.95
-	_override_all(body, mat)
+	override_all(body, mat)
 	return body
 
 static func _first_existing(paths: Array) -> String:
@@ -412,11 +432,13 @@ static func _first_existing(paths: Array) -> String:
 			return p
 	return ""
 
-static func _override_all(node: Node, mat: Material) -> void:
+## Перекрыть материал всем MeshInstance3D ветки. Единственная реализация —
+## копии этого цикла жили в особняке, подвале и tex_solid_box.
+static func override_all(node: Node, mat: Material) -> void:
 	if node is MeshInstance3D:
 		(node as MeshInstance3D).material_override = mat
 	for child in node.get_children():
-		_override_all(child, mat)
+		override_all(child, mat)
 
 ## Готическое окно-витраж: текстура с альфой, светится изнутри.
 static func gothic_window(parent: Node, width: float, height: float, pos: Vector3,
@@ -480,7 +502,5 @@ static func tex_box(parent: Node, size: Vector3, pos: Vector3, tex_name: String,
 static func tex_solid_box(parent: Node, size: Vector3, pos: Vector3, tex_name: String,
 		tint := Color.WHITE, uv_scale := 0.5, rot := Vector3.ZERO) -> StaticBody3D:
 	var body := MeshLib.solid_box(parent, size, pos, Color.WHITE, rot)
-	for child in body.get_children():
-		if child is MeshInstance3D:
-			(child as MeshInstance3D).material_override = tex_mat(tex_name, tint, uv_scale)
+	override_all(body, tex_mat(tex_name, tint, uv_scale))
 	return body

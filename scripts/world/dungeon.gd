@@ -44,15 +44,11 @@ func _ready() -> void:
 func _floor_rect(r: Rect2, mat: Material = null) -> void:
 	var s := MeshLib.solid_box(self, Vector3(r.size.x, 0.3, r.size.y),
 		Vector3(r.position.x + r.size.x / 2.0, FLOOR_Y - 0.15, r.position.y + r.size.y / 2.0), Color.WHITE)
-	for c in s.get_children():
-		if c is MeshInstance3D:
-			(c as MeshInstance3D).material_override = mat if mat else _mat_floor
+	ModelLib.override_all(s, mat if mat else _mat_floor)
 
 func _wall(size: Vector3, pos: Vector3, mat: Material = null) -> void:
 	var b := MeshLib.solid_box(self, size, pos, Color.WHITE)
-	for c in b.get_children():
-		if c is MeshInstance3D:
-			(c as MeshInstance3D).material_override = mat if mat else _mat_wall
+	ModelLib.override_all(b, mat if mat else _mat_wall)
 
 ## Потолок с коллизией: иначе камера-пружина протыкает свод и смотрит из-за него.
 ## Плита шире комнаты на толщину стен — иначе над верхом стены остаётся щель в небо.
@@ -60,9 +56,7 @@ func _ceiling(r: Rect2, mat: Material = null) -> void:
 	var g := r.grow(T)
 	var b := MeshLib.solid_box(self, Vector3(g.size.x, 0.3, g.size.y),
 		Vector3(g.position.x + g.size.x / 2.0, H + 0.15, g.position.y + g.size.y / 2.0), Color.WHITE)
-	for c in b.get_children():
-		if c is MeshInstance3D:
-			(c as MeshInstance3D).material_override = mat if mat else _mat_ceil
+	ModelLib.override_all(b, mat if mat else _mat_ceil)
 
 func _shell() -> void:
 	_floor_rect(CELLAR, _wine_floor)

@@ -23,14 +23,7 @@ func _ready() -> void:
 		# магнитик-череп, куда без него
 		MeshLib.sphere(self, 0.05, Vector3(0.15, 1.5, -0.36), MeshLib.BONE_DARK)
 	else:
-		var vis := ModelLib.visual(self, model_path, Vector3.ZERO, model_rot, model_scale)
-		var aabb := ModelLib.merged_aabb(vis)  # масштаб уже внутри
-		var col := CollisionShape3D.new()
-		var shape := BoxShape3D.new()
-		shape.size = aabb.size.max(Vector3(0.3, 0.3, 0.3)) * 0.95
-		col.shape = shape
-		col.position = aabb.position + aabb.size * 0.5
-		add_child(col)
+		var aabb := ModelLib.prop_visual(self, model_path, model_rot, model_scale)
 		# яйцо появляется перед дверцей на уровне полок, какой бы ни была модель
 		_egg_off = Vector3(0, aabb.position.y + aabb.size.y * 0.55,
 			aabb.position.z - 0.35)

@@ -37,98 +37,30 @@ const SHAFT_BOTTOM := -1.8
 const HS := ModelLib.HOUSE_SCALE
 const FS := ModelLib.FURN_SCALE
 
-# Meshy «некро-мебель»: origin в ЦЕНТРЕ модели, все нормированы к высоте ~1.9,
-# фронт смотрит в +Z. Промеры probe_model.gd 2026-07-31: [путь, сырой AABB].
-const NECRO := {
-	"icebox": ["res://assets/models/139_Necro_Icebox.glb", Vector3(0.714, 1.899, 0.560)],
-	"sink": ["res://assets/models/140_Necro_Sink.glb", Vector3(1.886, 1.899, 1.363)],
-	"stove": ["res://assets/models/141_Necro_Stove.glb", Vector3(1.689, 1.900, 1.042)],
-	"cabinet": ["res://assets/models/142_Necro_Cabinet.glb", Vector3(1.899, 1.653, 0.751)],
-	"wall_cab": ["res://assets/models/143_Necro_WallCabinet.glb", Vector3(0.988, 1.900, 0.399)],
-	"door_in": ["res://assets/models/144_Necro_InteriorDoor.glb", Vector3(1.001, 1.899, 0.159)],
-	"chandelier": ["res://assets/models/145_Necro_Chandelier.glb", Vector3(1.807, 1.897, 1.574)],
-	"sconce": ["res://assets/models/146_Necro_Sconce.glb", Vector3(0.629, 1.899, 1.138)],
-	"wall_clock": ["res://assets/models/153_Necro_WallClock.glb", Vector3(1.604, 1.899, 0.231)],
-	"table": ["res://assets/models/154_Necro_Table.glb", Vector3(1.411, 1.900, 1.033)],
-	"chair": ["res://assets/models/155_Necro_Chair.glb", Vector3(0.839, 1.899, 0.904)],
-	"gf_clock": ["res://assets/models/156_Necro_GrandfatherClock.glb", Vector3(0.525, 1.899, 0.358)],
-	"wine_rack": ["res://assets/models/157_Necro_WineRack.glb", Vector3(1.468, 1.899, 0.580)],
-	"mannequin": ["res://assets/models/158_Necro_Mannequin.glb", Vector3(0.600, 1.899, 0.532)],
-	"tool_rack": ["res://assets/models/159_Necro_ToolRack.glb", Vector3(1.447, 1.900, 0.366)],
-	"workbench": ["res://assets/models/160_Necro_Workbench.glb", Vector3(1.899, 0.977, 1.208)],
-	"stool": ["res://assets/models/161_Necro_Stool.glb", Vector3(1.570, 1.900, 1.396)],
-	"wardrobe": ["res://assets/models/162_Necro_Wardrobe.glb", Vector3(1.061, 1.900, 0.414)],
-	"toilet": ["res://assets/models/163_Necro_Toilet.glb", Vector3(1.183, 1.899, 1.780)],
-	"bath_a": ["res://assets/models/164_Necro_BathroomA.glb", Vector3(1.612, 1.899, 1.530)],
-	"bath_b": ["res://assets/models/165_Necro_BathroomB.glb", Vector3(1.104, 1.899, 0.967)],
-	"chest": ["res://assets/models/166_Necro_Chest.glb", Vector3(1.899, 1.165, 1.098)],
-	"bench": ["res://assets/models/167_Necro_Bench.glb", Vector3(1.900, 0.840, 0.596)],
-	"candelabra": ["res://assets/models/168_Necro_Candelabra.glb", Vector3(1.310, 1.895, 0.644)],
-	"cauldron": ["res://assets/models/169_Necro_Cauldron.glb", Vector3(1.899, 1.717, 1.397)],
-	"cage": ["res://assets/models/170_Necro_Cage.glb", Vector3(1.184, 1.900, 1.150)],
-	"anvil": ["res://assets/models/171_Necro_Anvil.glb", Vector3(1.899, 1.582, 1.510)],
-	"ingredient": ["res://assets/models/172_Necro_IngredientShelf.glb", Vector3(1.387, 1.900, 0.382)],
-	"barrel": ["res://assets/models/173_Necro_Barrel.glb", Vector3(1.535, 1.900, 1.595)],
-	"bookcase": ["res://assets/models/174_Necro_Bookcase.glb", Vector3(0.983, 1.899, 0.405)],
-	"front_door": ["res://assets/models/175_Necro_FrontDoor.glb", Vector3(1.370, 1.900, 0.272)],
-	"grand_chand": ["res://assets/models/176_Necro_GrandChandelier.glb", Vector3(1.406, 1.899, 1.407)],
-}
+# Каталог и фабрика некро-мебели живут в NecroLib (SRP: особняк — планировка,
+# каталог — отдельно). Здесь только тонкие обёртки под локальные FLOOR_Y/DOOR_H.
 
 func necro_path(key: String) -> String:
-	return NECRO[key][0]
+	return NecroLib.path(key)
 
 func necro_scale(key: String, target_h: float) -> float:
-	return target_h / (NECRO[key][1] as Vector3).y
+	return NecroLib.scale_for(key, target_h)
 
-## Напольная некро-мебель: узел поднимается на полвысоты (origin в центре).
 func _necro_solid(key: String, x: float, z: float, rot_y: float, target_h: float) -> StaticBody3D:
-	return ModelLib.solid(self, necro_path(key),
-		Vector3(x, FLOOR_Y + target_h * 0.5, z), rot_y, necro_scale(key, target_h))
+	return NecroLib.solid(self, FLOOR_Y, key, x, z, rot_y, target_h)
 
-## Настенная/потолочная некро-модель: pos — ЦЕНТР модели.
 func _necro_at(key: String, pos: Vector3, rot_y: float, target_h: float, solid := true) -> Node3D:
-	if solid:
-		return ModelLib.solid(self, necro_path(key), pos, rot_y, necro_scale(key, target_h))
-	return ModelLib.visual(self, necro_path(key), pos, rot_y, necro_scale(key, target_h))
+	return NecroLib.at(self, key, pos, rot_y, target_h, solid)
 
-## Обрезать box-коллизию по верхней плоскости (top_local — в системе узла).
-## Для мебели с декором выше рабочей поверхности: полный AABB отшвыривал бы
-## предметы, положенные на столешницу (та же ловушка, что была у плиты).
-func _cap_collision(body: StaticBody3D, top_local: float) -> void:
-	for c in body.get_children():
-		if c is CollisionShape3D:
-			var col := c as CollisionShape3D
-			var box := col.shape as BoxShape3D
-			if box == null:
-				return
-			var bottom := col.position.y - box.size.y * 0.5
-			var new_h := maxf(top_local - bottom, 0.2)
-			box.size = Vector3(box.size.x, new_h, box.size.z)
-			col.position.y = bottom + new_h * 0.5
-			return
-
-## Навесной кухонный шкаф пропорцией под тумбу: 1.10 x 1.30 x 0.36. Модель
-## вертикальная (0.99 x 1.9), равномерный масштаб делал его узким — тянем по осям.
 func _necro_wall_cab(pos: Vector3, rot_y: float) -> void:
-	var raw: Vector3 = NECRO["wall_cab"][1]
-	ModelLib.solid_xyz(self, necro_path("wall_cab"), pos, rot_y,
-		Vector3(1.10 / raw.x, 1.30 / raw.y, 0.36 / raw.z))
+	NecroLib.wall_cab(self, pos, rot_y)
 
-## Бра со тёплым огоньком; rot 0 — фронт на север (+Z), -90 — на запад (-X).
 func _necro_sconce(pos: Vector3, rot_y: float) -> void:
-	_necro_at("sconce", pos, rot_y, 0.6, false)
-	var dir := Vector3(sin(deg_to_rad(rot_y)), 0, cos(deg_to_rad(rot_y)))
-	var l := OmniLight3D.new()
-	l.position = pos + dir * 0.32 + Vector3(0, 0.12, 0)
-	l.light_color = Color(1.0, 0.72, 0.42)
-	l.omni_range = 4.5
-	l.light_energy = 0.9
-	add_child(l)
+	NecroLib.sconce(self, pos, rot_y)
 
 ## Межкомнатная дверь в проём 1.8 x DOOR_H; swing со знаком — куда распахивать.
 func _inner_door(pos: Vector3, rot_y: float, swing_deg: float) -> DoorGate:
-	return DoorGate.make_glb(self, pos, rot_y, 1.8, DOOR_H,
-		necro_path("door_in"), NECRO["door_in"][1], swing_deg)
+	return NecroLib.door(self, "door_in", pos, rot_y, 1.8, DOOR_H, swing_deg)
 
 var mode := "interior"   # "exterior" — оболочка для улицы, "interior" — комнаты
 var portals: Array[Portal] = []
@@ -169,8 +101,7 @@ func _ready() -> void:
 			"Войти в особняк", "indoor", "kitchen_door")
 		portals.append(enter)
 		# створка в проёме: E по ней грузит интерьер, дырка не сквозит небом
-		var leaf_out := DoorGate.make_glb(self, Vector3(BACK_DOOR_X - 0.9, FLOOR_Y, HZ), 0.0,
-			1.8, DOOR_H, necro_path("door_in"), NECRO["door_in"][1], 105.0, 1.12)
+		var leaf_out := NecroLib.door(self, "door_in", Vector3(BACK_DOOR_X - 0.9, FLOOR_Y, HZ), 0.0, 1.8, DOOR_H, 105.0, 1.12)
 		leaf_out.portal_link = enter
 		_witch_meet()
 		return
@@ -208,8 +139,7 @@ func _ready() -> void:
 		"Выйти во двор", "outdoor", "back_porch")
 	portals.append(exit_p)
 	# чёрный ход закрыт дверью-порталом: E по створке сразу грузит двор
-	var leaf_in := DoorGate.make_glb(self, Vector3(BACK_DOOR_X - 0.9, FLOOR_Y, HZ), 0.0,
-		1.8, DOOR_H, necro_path("door_in"), NECRO["door_in"][1], 105.0, 1.12)
+	var leaf_in := NecroLib.door(self, "door_in", Vector3(BACK_DOOR_X - 0.9, FLOOR_Y, HZ), 0.0, 1.8, DOOR_H, 105.0, 1.12)
 	leaf_in.portal_link = exit_p
 
 func _materials() -> void:
@@ -255,9 +185,7 @@ func _wall(size: Vector3, pos: Vector3, outer := false, axis := "z",
 
 func _wall_box(size: Vector3, pos: Vector3, mat: Material) -> StaticBody3D:
 	var body := MeshLib.solid_box(self, size, pos, Color.WHITE)
-	for child in body.get_children():
-		if child is MeshInstance3D:
-			(child as MeshInstance3D).material_override = mat
+	ModelLib.override_all(body, mat)
 	return body
 
 ## Стена вдоль X с проёмами. openings: [[x_from, x_to], ...] или [[x0, x1, высота]].
@@ -363,9 +291,7 @@ func _skin_ceil(room: String, x0: float, z0: float, x1: float, z1: float, y_bott
 func _floor_rect(x0: float, z0: float, x1: float, z1: float, y_top: float, mat: Material) -> void:
 	var s := MeshLib.solid_box(self, Vector3(x1 - x0, 0.2, z1 - z0),
 		Vector3((x0 + x1) / 2.0, y_top - 0.1, (z0 + z1) / 2.0), Color.WHITE)
-	for child in s.get_children():
-		if child is MeshInstance3D:
-			(child as MeshInstance3D).material_override = mat
+	ModelLib.override_all(s, mat)
 
 func _tile(x0: float, z0: float, x1: float, z1: float, y: float) -> void:
 	var mi := MeshLib.box(self, Vector3(x1 - x0, 0.03, z1 - z0),
@@ -618,12 +544,10 @@ func _walls_f2() -> void:
 
 func _grand_hall() -> void:
 	# парадные ворота — две некро-створки на весь проём 3.6, обе заперты до M2
-	front_door = DoorGate.make_glb(self, Vector3(-1.8, FLOOR_Y, -HZ), 0.0, 1.8, 2.8,
-		necro_path("front_door"), NECRO["front_door"][1], 105.0, 1.1)
+	front_door = NecroLib.door(self, "front_door", Vector3(-1.8, FLOOR_Y, -HZ), 0.0, 1.8, 2.8, 105.0, 1.1)
 	front_door.locked = true
 	front_door.locked_hint = "Парадные двери заколочены. За ними город, а город — это уже другая история. (M2)"
-	var front_r := DoorGate.make_glb(self, Vector3(1.8, FLOOR_Y, -HZ), 180.0, 1.8, 2.8,
-		necro_path("front_door"), NECRO["front_door"][1], -105.0, 1.1)
+	var front_r := NecroLib.door(self, "front_door", Vector3(1.8, FLOOR_Y, -HZ), 180.0, 1.8, 2.8, -105.0, 1.1)
 	front_r.locked = true
 	front_r.locked_hint = front_door.locked_hint
 	# ковровая дорожка от дверей к лестницам
@@ -734,7 +658,7 @@ func _kitchen() -> void:
 func _dining() -> void:
 	# x -22..-15, z 0..10; проём в стене x=-15 при z 4..5.8. Вся мебель — некро-пак.
 	var tbl := _necro_solid("table", -18.5, 7.4, 0, 1.5)
-	_cap_collision(tbl, 0.07)   # столешница ~0.82 над полом, выше — декор
+	ModelLib.cap_collision(tbl, 0.07)   # столешница ~0.82 над полом, выше — декор
 	for i in 3:
 		_necro_solid("chair", -19.7 + i * 1.2, 8.6, 180, 1.35)
 		_necro_solid("chair", -19.7 + i * 1.2, 6.2, 0, 1.35)
@@ -815,7 +739,7 @@ func _sabbath() -> void:
 func _amulet() -> void:
 	# x 15..22, z 0..10; проём в стене x=15 при z 4..5.8. Мебель — некро-пак.
 	var wb := _necro_solid("workbench", 18.5, 9.2, 0, 0.95)
-	_cap_collision(wb, 0.44)   # столешница ~0.9 над полом
+	ModelLib.cap_collision(wb, 0.44)   # столешница ~0.9 над полом
 	ModelLib.visual(self, "Chalice", Vector3(18.1, FLOOR_Y + 0.95, 9.2))
 	ModelLib.grab(self, "Key_Gold", Vector3(18.9, FLOOR_Y + 0.95, 9.1), 0.5)
 	_necro_solid("bookcase", 21.5, 7.6, -90, 2.1)
@@ -830,8 +754,7 @@ func _amulet() -> void:
 
 func _potion_room() -> void:
 	# x 15..22, z -10..0 — ЗАПЕРТА. Дверь x=15 (z -5.8..-4), вентиляция (z -2.4..-1.6, h 0.55)
-	pantry_door = DoorGate.make_glb(self, Vector3(WING_X, FLOOR_Y, -5.8), -90.0, 1.8, DOOR_H,
-		necro_path("door_in"), NECRO["door_in"][1])
+	pantry_door = NecroLib.door(self, "door_in", Vector3(WING_X, FLOOR_Y, -5.8), -90.0, 1.8, DOOR_H)
 	pantry_door.locked = true
 	pantry_door.locked_hint = "Зельеварочная заперта изнутри. В стене у пола — вентиляция, рука пролезет."
 	if Game.world_state["pantry_open"]:
@@ -1152,12 +1075,10 @@ func _exterior() -> void:
 		ModelLib.tex_solid_box(self, Vector3(0.7, 3.6, 0.7), Vector3(gx, 1.8, -HZ - 0.6), "stone_light.png", Color(0.7, 0.72, 0.8), 0.4)
 	MeshLib.box(self, Vector3(7.0, 0.4, 3.4), Vector3(0, 3.8, -HZ - 1.4), MeshLib.HOUSE_TRIM)
 	# парадные ворота снаружи — те же две некро-створки, что и в интерьере
-	front_door = DoorGate.make_glb(self, Vector3(-1.8, FLOOR_Y, -HZ), 0.0, 1.8, 2.8,
-		necro_path("front_door"), NECRO["front_door"][1], 105.0, 1.1)
+	front_door = NecroLib.door(self, "front_door", Vector3(-1.8, FLOOR_Y, -HZ), 0.0, 1.8, 2.8, 105.0, 1.1)
 	front_door.locked = true
 	front_door.locked_hint = "Парадные двери заколочены. Тебе — через чёрный ход, как и положено прислуге."
-	var front_r := DoorGate.make_glb(self, Vector3(1.8, FLOOR_Y, -HZ), 180.0, 1.8, 2.8,
-		necro_path("front_door"), NECRO["front_door"][1], -105.0, 1.1)
+	var front_r := NecroLib.door(self, "front_door", Vector3(1.8, FLOOR_Y, -HZ), 180.0, 1.8, 2.8, -105.0, 1.1)
 	front_r.locked = true
 	front_r.locked_hint = front_door.locked_hint
 	_lamp(Vector3(BACK_DOOR_X, 2.8, HZ + 1.2), MeshLib.ACCENT, 7.0, 1.3)
