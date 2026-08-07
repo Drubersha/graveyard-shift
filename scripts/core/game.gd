@@ -1,12 +1,10 @@
 extends Node
 ## Автолоад "Game": глобальные сигналы, раскладка ввода, possession и счёт срача.
 
-signal prop_broken(value: int)
 signal possession_changed(node: Node3D)
 signal item_picked(item: Node3D)   # null — предмет отпущен
 signal objective_changed(text: String)
 signal hint_shown(text: String)
-signal mission_stage_changed(stage: int)
 
 var possessed: Node3D = null        # чем управляем
 var camera_target: Node3D = null    # чьими глазами смотрим (череп, пока он при теле — тело)
@@ -18,6 +16,13 @@ var mess_target: int = 0  # >0 — HUD показывает срач-о-метр
 # кадр последней смены possession: гасит двойное срабатывание Tab,
 # когда скелет и рука обрабатывают один и тот же is_action_just_pressed
 var last_switch_frame := -1
+
+## Кэш get_nodes_in_group на текущий физический кадр: HUD опрашивает группы
+## каждый тик, а в одном кадре одну группу могут запрашивать несколько узлов.
+## Состав групп живёт внутри сцены (предметы спавнятся и бьются), поэтому
+## кэш валиден ровно один кадр — устареть не успевает.
+var _group_cache := {}
+var _group_frame := -1
 
 ## Состояние мира, которое переживает перезагрузку локаций.
 var world_state := {
@@ -98,7 +103,16 @@ func cycle_control() -> void:
 
 func add_mess(value: int) -> void:
 	mess_points += value
-	prop_broken.emit(value)
+
+## Группы с кэшем на текущий физический кадр — для горячих циклов.
+func nodes_in_group(group: String) -> Array:
+	var frame := int(Engine.get_physics_frames())
+	if frame != _group_frame:
+		_group_frame = frame
+		_group_cache.clear()
+	if not _group_cache.has(group):
+		_group_cache[group] = get_tree().get_nodes_in_group(group)
+	return _group_cache[group]
 
 func hint(text: String) -> void:
 	hint_shown.emit(text)

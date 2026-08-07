@@ -69,7 +69,7 @@ func _on_ground() -> bool:
 func _try_interact() -> void:
 	var best: Node = null
 	var best_d := INTERACT_RANGE
-	for node in get_tree().get_nodes_in_group("interactable"):
+	for node in Game.nodes_in_group("interactable"):
 		if not node is Node3D:
 			continue
 		var d: float = (node as Node3D).global_position.distance_to(global_position)

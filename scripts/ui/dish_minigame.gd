@@ -132,6 +132,13 @@ func _input(event: InputEvent) -> void:
 func finish_wash() -> void:
 	_finish(true)
 
+## Если мини-игру убивают раньше _finish (переход локации, выгрузка сцены),
+## дерево не должно остаться стоять на паузе.
+func _exit_tree() -> void:
+	if not _done:
+		get_tree().paused = false
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
 func _finish(washed: bool) -> void:
 	if _done:
 		return

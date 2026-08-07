@@ -148,7 +148,7 @@ func _physics_process(_delta: float) -> void:
 	if is_instance_valid(possessed):
 		var best_d := 2.4  # = INTERACT_RANGE скелета
 		var best: Node = null
-		for node in possessed.get_tree().get_nodes_in_group("interactable"):
+		for node in Game.nodes_in_group("interactable"):
 			if node is Node3D and node.has_method("get_prompt"):
 				var d: float = (node as Node3D).global_position.distance_to(possessed.global_position)
 				if d < best_d and Game.has_line_of_sight(possessed, node):

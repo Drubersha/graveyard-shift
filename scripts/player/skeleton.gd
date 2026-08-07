@@ -13,10 +13,7 @@ class_name SkeletonPlayer extends CharacterBody3D
 ## СБОРКА ТОЛЬКО ВРУЧНУЮ. Никаких таймеров: R в рассыпанном виде стягивает кости
 ## к черепу. R в активном виде — наоборот, рассыпает. H — полный респавн у входа.
 
-signal shattered
 signal reassembled
-signal skull_thrown
-signal part_lost(part_id: String)
 
 const SPEED := 4.2
 const ACCEL := 12.0
@@ -28,7 +25,6 @@ const PUSH_FORCE := 1.6
 ## 8.0 ≈ падение с 3.3 м (второй этаж), 14.0 ≈ падение с 10 м.
 const SHOCK_PART := 8.0            # оторвать одну деталь
 const SHOCK_FULL := 14.0           # рассыпаться целиком
-const SHOCK_LIMIT := SHOCK_FULL    # старое имя полного порога: оставлено для контента
 ## Подъём визуала над началом координат тела. Капсула стоит от локальной Y=0.20
 ## (позиция 0.85 минус половина высоты 0.65), а подошвы деталей приходятся на
 ## локальную Y=0.024 (крепление ноги 0.84 минус 0.816 модели) — без поправки
@@ -337,7 +333,7 @@ func _try_grab() -> void:
 		best = null
 	if best == null:
 		var best_d := GRAB_RANGE
-		for node in get_tree().get_nodes_in_group("grabbable"):
+		for node in Game.nodes_in_group("grabbable"):
 			var rb := node as RigidBody3D
 			if not rb or rb.mass > 25.0:
 				continue
@@ -427,7 +423,7 @@ func nearest_interactable(range_: float) -> Node:
 		return aimed
 	var best: Node = null
 	var best_d := range_
-	for node in get_tree().get_nodes_in_group("interactable"):
+	for node in Game.nodes_in_group("interactable"):
 		if not node is Node3D:
 			continue
 		var d: float = (node as Node3D).global_position.distance_to(global_position)
@@ -547,7 +543,6 @@ func detach_part(id: String, dir: Vector3) -> void:
 			piv.visible = false
 		_loose[id] = BonePart.make(get_parent(), id, at, vel)
 	_update_limp()
-	part_lost.emit(id)
 
 func _update_limp() -> void:
 	if _part_on["leg_l"] == _part_on["leg_r"]:
@@ -564,7 +559,6 @@ func _detach_skull(power: float) -> void:
 		return
 	var rig := Game.camera_rig as CameraRig
 	_spawn_skull((rig.aim() if rig else Vector3.FORWARD) * power + Vector3.UP * 2.0)
-	skull_thrown.emit()
 	Game.possess(skull_entity)
 	Game.hint("Череп отделён. Tab — переключить управление (череп / тело / рука), G у тела — вернуть на место.")
 
@@ -640,7 +634,6 @@ func _shatter_body(_from_damage: bool) -> void:
 	if is_instance_valid(skull_entity):
 		Game.possess(skull_entity)
 	Game.hint("Рассыпался. Жми R ещё раз — кости слетятся к черепу.")
-	shattered.emit()
 
 ## В рассыпанном виде ждём ТОЛЬКО кнопку. Никаких таймеров: сборка ручная.
 func _tick_shattered() -> void:

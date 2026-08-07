@@ -25,7 +25,8 @@ var _beacon: MeshInstance3D
 func _ready() -> void:
 	# «дым» цели: столб всегда стоит НА полу цели и тянется вверх
 	_beacon = MeshLib.cylinder(self, 0.22, 3.0, Vector3.ZERO, MeshLib.ACCENT)
-	var m := MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT)
+	# mat() отдаёт общий кэшированный ресурс — свойства меняем на дубликате
+	var m := MeshLib.mat(MeshLib.ACCENT, 1.0, 0.0, MeshLib.ACCENT).duplicate()
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.albedo_color.a = 0.11
 	_beacon.material_override = m
@@ -84,7 +85,6 @@ func bind_cellar(c: Dungeon) -> void:
 
 func _enter(s: Stage) -> void:
 	stage = s
-	Game.mission_stage_changed.emit(s)
 	match s:
 		Stage.ASSEMBLE:
 			Game.objective_changed.emit("Ты — куча костей в открытой могиле. Само не срастётся: жми R — кости слетятся к черепу.")
